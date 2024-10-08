@@ -1,6 +1,7 @@
 import unittest
 import yaml
 from simulation import Simulation, Queue
+from random_generator import RandomNumberGenerator
 
 class TestSimulation(unittest.TestCase):
     @classmethod
@@ -33,10 +34,7 @@ class TestSimulation(unittest.TestCase):
             list(self.queues.values()),
             self.config['numbers']
         )
-        try:
-            sim.execute()
-        except Exception as e:
-            print(f"Simulation stopped: {str(e)}")
+        sim.execute()
         return sim
 
     def test_simulation_execution(self):

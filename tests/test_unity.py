@@ -1,5 +1,6 @@
 import unittest
 from simulation import Queue, Event
+from random_generator import RandomNumberGenerator
 
 class TestQueue(unittest.TestCase):
     def test_queue_initialization(self):
@@ -31,6 +32,29 @@ class TestEvent(unittest.TestCase):
         self.assertLess(event1, event2)
         self.assertEqual(event1, event3)  # Same time, different type should be equal
         self.assertLess(event1, Event(11, "arrival", queue))
+
+class TestRandomNumberGenerator(unittest.TestCase):
+    def test_random_uniform(self):
+        rng = RandomNumberGenerator(quantity=100, seed=42)
+        for _ in range(100):
+            r = rng.random_uniform(0, 1)
+            self.assertIsNotNone(r)
+            if r is not None:
+                self.assertGreaterEqual(r, 0.0)
+                self.assertLessEqual(r, 1.0)
+
+        # Test if None is returned when out of numbers
+        self.assertIsNone(rng.random_uniform(0, 1))
+
+    def test_random_uniform_range(self):
+        rng = RandomNumberGenerator(quantity=100, seed=42)
+        a, b = 10, 20
+        for _ in range(100):
+            r = rng.random_uniform(a, b)
+            self.assertIsNotNone(r)
+            if r is not None:
+                self.assertGreaterEqual(r, a)
+                self.assertLessEqual(r, b)
 
 if __name__ == '__main__':
     unittest.main()

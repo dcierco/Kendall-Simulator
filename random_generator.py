@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import matplotlib.pyplot as plt
 
 def linear_congruential_method(a: int, m: int, c: int, x0: int, random_nums: List[int], num_of_random_nums: int) -> None:
@@ -72,7 +72,7 @@ class RandomNumberGenerator:
     A class to generate and manage random numbers.
     """
 
-    def __init__(self, quantity: int, seed: int):
+    def __init__(self, quantity: int, seed: int, predefined_nums: Optional[List[float]] = None):
         """
         Initialize the RandomNumberGenerator.
 
@@ -80,12 +80,18 @@ class RandomNumberGenerator:
             quantity (int): Number of random numbers to generate
             seed (int): Seed for the random number generation
         """
-        self.quantity = quantity + 1
         self.seed = seed
         self.a = 214013
         self.m = 4294967296
         self.c = 2531011
-        self.nums = self._generate_numbers()
+        self.index = 0
+
+        if predefined_nums is not None:
+            self.nums = predefined_nums
+            self.quantity = len(predefined_nums)
+        else:
+            self.quantity = quantity + 1
+            self.nums = self._generate_numbers()
 
     def _generate_numbers(self) -> List[float]:
         """
@@ -116,6 +122,23 @@ class RandomNumberGenerator:
             file_name (str, optional): Name of the file to write to. Defaults to "generated_numbers.txt".
         """
         write_nums_to_file(file_name, self.nums)
+
+    def random_uniform(self, a: float, b: float) -> Optional[float]:
+        """
+        Generates a random number uniformly distributed between a and b.
+
+        Args:
+            a (float): The lower bound of the range.
+            b (float): The upper bound of the range.
+
+        Returns:
+            Optional[float]: A random number between a and b, or None if out of numbers.
+        """
+        if self.index >= len(self.nums):
+            return None
+        r = self.nums[self.index]
+        self.index += 1
+        return a + r * (b - a)
 
 if __name__ == '__main__':
     # Example usage
