@@ -1,0 +1,35 @@
+initialTime: 0
+quantityNums: 10000
+seed: 42
+queuesList:
+  - name: Queue1
+    servers: 2
+    capacity: 4
+    arrivalTimeMin: 1
+    arrivalTimeMax: 3
+    serviceTimeMin: 5
+    serviceTimeMax: 6
+    hasExternalArrivals: true
+    network:
+      - [Queue2, 0.7]
+      - [Queue1, 0.2]
+      - [Queue3, 0.1]
+  - name: Queue2
+    servers: 3
+    capacity: 5
+    arrivalTimeMin: 0
+    arrivalTimeMax: 0
+    serviceTimeMin: 2
+    serviceTimeMax: 4
+    hasExternalArrivals: false
+    network:
+      - [Queue3, 1.0]
+  - name: Queue3
+    servers: 1
+    capacity: 3
+    arrivalTimeMin: 2
+    arrivalTimeMax: 4
+    serviceTimeMin: 3
+    serviceTimeMax: 5
+    hasExternalArrivals: true
+    network: []
