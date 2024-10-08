@@ -30,7 +30,7 @@ class Queue:
     Attributes:
         name (str): The name of the queue.
         servers (int): The number of servers in the queue.
-        capacity (int): The maximum number of clients the queue can hold.
+        capacity (int): The maximum number of clients the queue can hold, if None that means that the capaicty is infinite.
         arrival_time (Tuple[float, float]): The min and max arrival times.
         service_time (Tuple[float, float]): The min and max service times.
         network (List[Tuple[Queue, float]]): The network of connected queues and their probabilities.
@@ -42,9 +42,9 @@ class Queue:
     """
     name: str
     servers: int
-    capacity: int
     arrival_time: Tuple[float, float]
     service_time: Tuple[float, float]
+    capacity: Optional[int] = None
     network: List[Tuple['Queue', float]] = field(default_factory=list)
     has_external_arrivals: bool = True
     clients: int = 0
@@ -53,7 +53,7 @@ class Queue:
     kendall_notation: str = field(init=False)
 
     def __post_init__(self):
-        self.time_at_service = [0] * (self.capacity + 1)
+        self.time_at_service = [0] * (self.capacity + 1 if self.capacity is not None else 1)
         self.kendall_notation = self.generate_kendall_notation()
 
     def generate_kendall_notation(self) -> str:
@@ -78,7 +78,7 @@ class Queue:
             B = "G"  # General distribution otherwise
 
         C = str(self.servers)
-        K = str(self.capacity)
+        K = str(self.capacity) if self.capacity is not None else "∞"
         N = "∞"  # Assuming infinite population
         D = "FCFS"  # Assuming First-Come-First-Served policy
 
@@ -147,7 +147,7 @@ class Simulation:
         queue = event.origin_queue
         self.accumulate_time()
 
-        if queue.clients < queue.capacity:
+        if queue.capacity is None or queue.clients < queue.capacity:
             queue.clients += 1
             if queue.clients <= queue.servers:
                 self.schedule_service_completion(queue)
@@ -188,7 +188,7 @@ class Simulation:
             self.schedule_service_completion(origin_queue)
 
         if dest_queue is not None:
-            if dest_queue.clients < dest_queue.capacity:
+            if dest_queue.capacity is None or dest_queue.clients < dest_queue.capacity:
                 dest_queue.clients += 1
                 if dest_queue.clients <= dest_queue.servers:
                     self.schedule_service_completion(dest_queue)

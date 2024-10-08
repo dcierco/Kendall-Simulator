@@ -36,9 +36,9 @@ def main():
         queue = Queue(
             q_config['name'],
             q_config['servers'],
-            q_config['capacity'],
             (q_config['arrivalTimeMin'], q_config['arrivalTimeMax']),
             (q_config['serviceTimeMin'], q_config['serviceTimeMax']),
+            capacity=q_config['capacity'],
             has_external_arrivals=q_config.get('hasExternalArrivals', True)
         )
         queues_dict[queue.name] = queue

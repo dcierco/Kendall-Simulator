@@ -14,9 +14,9 @@ class TestSimulation(unittest.TestCase):
             queue = Queue(
                 q_config['name'],
                 q_config['servers'],
-                q_config['capacity'],
                 (q_config['arrivalTimeMin'], q_config['arrivalTimeMax']),
                 (q_config['serviceTimeMin'], q_config['serviceTimeMax']),
+                capacity=q_config['capacity'],
                 has_external_arrivals=q_config.get('hasExternalArrivals', True)
             )
             self.queues[q_config['name']] = queue
@@ -46,7 +46,8 @@ class TestSimulation(unittest.TestCase):
 
         for queue in sim.queues_list:
             self.assertGreaterEqual(queue.clients, 0)
-            self.assertLessEqual(queue.clients, queue.capacity)
+            if queue.capacity is not None:
+                self.assertLessEqual(queue.clients, queue.capacity)
             self.assertGreaterEqual(queue.losses, 0)
             self.assertGreater(sum(queue.time_at_service), 0)
 
