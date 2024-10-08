@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 import heapq
-from randomGen import GeneratedNums
+from random_generator import RandomNumberGenerator
 
 @dataclass(order=True)
 class Event:
@@ -111,7 +111,7 @@ class Simulation:
             self.quantity_nums = len(predefined_nums)
         else:
             self.quantity_nums = quantity_nums
-            self.random_nums = GeneratedNums(quantity_nums, seed).getNums()
+            self.random_nums = RandomNumberGenerator(quantity_nums, seed).get_nums()
 
         self.random_index = 0
         self.events: List[Event] = []

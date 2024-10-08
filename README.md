@@ -29,6 +29,7 @@ This simulator is particularly useful for:
 - 📈 Detailed state probability calculations
 - 📉 Loss rate analysis
 - 🧮 Kendall notation inference
+- 📊 Dispersion graph generation for random numbers
 
 ## 🛠️ Installation
 
@@ -100,6 +101,22 @@ The simulator provides detailed output for each queue, including:
 - Number of losses (rejected clients)
 
 It also shows the total simulation time and overall losses.
+
+## 📊 Dispersion Graph
+
+The simulator includes a feature to generate a dispersion graph of the random numbers used in the simulation. This graph helps visualize the distribution and quality of the generated random numbers.
+
+To generate the dispersion graph:
+
+1. Uncomment the following lines in the `random_generator.py` file:
+   ```python
+   # x = list(range(len(numbers)))
+   # generate_graph(x, numbers)
+   ```
+
+2. Run the simulation as usual. The graph will be displayed after the simulation completes.
+
+The dispersion graph plots the index of each generated number against its value, allowing you to visually inspect the randomness and distribution of the numbers used in your simulation.
 
 ## 🧪 Testing
 
