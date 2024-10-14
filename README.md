@@ -7,6 +7,7 @@
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Output](#output)
+- [Dispersion Graph](#dispersion-graph)
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
@@ -30,6 +31,7 @@ This simulator is particularly useful for:
 - 📉 Loss rate analysis
 - 🧮 Kendall notation inference
 - 📊 Dispersion graph generation for random numbers
+- 🔄 Flexible random number generation and usage
 
 ## 🛠️ Installation
 
@@ -52,21 +54,21 @@ This simulator is particularly useful for:
 
 ## 🚀 Usage
 
-1. Configure your queue network in `config.yaml` (see [Configuration](#configuration) for details).
+1. Create a configuration file (e.g., `my_config.yaml`) based on the example in `examples/example_config.yaml`.
 
 2. Run the simulation:
-   ```
-   python kendall-simulator/run.py
-   ```
+
+```
+python src/simulator.py my_config.yaml
+```
 
 3. View the results in the console output.
 
 ## ⚙️ Configuration
 
-The `config.yaml` file is used to define your queue network. Here's an example:
+The configuration file (YAML format) is used to define your queue network. Here's an example:
 
 ```yaml
-initialTime: 0
 quantityNums: 10000
 seed: 42
 numbers: [0.1, 0.2, 0.3, 0.4, 0.5]  # Optional: for deterministic mode
@@ -78,19 +80,26 @@ queuesList:
     arrivalTimeMax: 3
     serviceTimeMin: 5
     serviceTimeMax: 6
-    hasExternalArrivals: true
+    arrivalStartTime: 0
     network:
       - [Queue2, 0.7]
       - [Queue1, 0.2]
-      - [Queue3, 0.1]
   # Add more queues as needed
 ```
 
-- `initialTime`: Starting time of the simulation
-- `quantityNums`: Number of random numbers to generate/use
-- `seed`: Random seed for reproducibility
+- `quantityNums`: Number of random numbers to generate (if not using predefined numbers)
+- `seed`: Random seed for reproducibility (optional, default is 69)
 - `numbers`: (Optional) List of predefined random numbers for deterministic simulations
 - `queuesList`: List of queues in the network, each with its own parameters
+
+Queue parameters:
+- `name`: Unique name for the queue
+- `servers`: Number of servers in the queue
+- `capacity`: Maximum number of clients (optional, infinite if not specified)
+- `arrivalTimeMin` and `arrivalTimeMax`: Range for arrival times
+- `serviceTimeMin` and `serviceTimeMax`: Range for service times
+- `arrivalStartTime`: Time when external arrivals start (optional)
+- `network`: List of next queues and their probabilities (optional)
 
 ## 📊 Output
 
@@ -100,23 +109,21 @@ The simulator provides detailed output for each queue, including:
 - Probability of each state
 - Number of losses (rejected clients)
 
-It also shows the total simulation time and overall losses.
+It also shows the total simulation time, overall losses, and a summary of unprocessed events.
 
 ## 📊 Dispersion Graph
 
-The simulator includes a feature to generate a dispersion graph of the random numbers used in the simulation. This graph helps visualize the distribution and quality of the generated random numbers.
+To generate a dispersion graph of the random numbers:
 
-To generate the dispersion graph:
-
-1. Uncomment the following lines in the `random_generator.py` file:
+1. In `random_generator.py`, uncomment these lines at the bottom:
    ```python
    # x = list(range(len(numbers)))
    # generate_graph(x, numbers)
    ```
 
-2. Run the simulation as usual. The graph will be displayed after the simulation completes.
+2. Run the simulation. The graph will be displayed after completion.
 
-The dispersion graph plots the index of each generated number against its value, allowing you to visually inspect the randomness and distribution of the numbers used in your simulation.
+This graph helps visualize the distribution and quality of the generated random numbers.
 
 ## 🧪 Testing
 

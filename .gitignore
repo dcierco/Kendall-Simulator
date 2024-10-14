@@ -1,14 +1,35 @@
-# Virtual environment
+# Virtual environments
 venv/
+.venv/
 
 # Python cache files
 __pycache__/
 *.pyc
+.mypy_cache/
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Sphinx documentation
+docs/build/
 
 # IDE-specific files
 .vscode/
 .idea/
 
+# Logs
+*.log
+
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# YAML files (except examples)
+*.yaml
+!examples/*.yaml
+
+# Poetry
+poetry.lock
