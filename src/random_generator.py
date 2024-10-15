@@ -114,9 +114,9 @@ class RandomNumberGenerator:
         Initialize the RandomNumberGenerator.
 
         Args:
-            quantity (Optional[int]): Number of random numbers to generate. Required if predefined_nums is None.
-            seed (int): Seed for the random number generation. Defaults to 69.
-            predefined_nums (Optional[List[float]]): List of predefined random numbers.
+            quantity: Number of random numbers to generate. Required if predefined_nums is None.
+            seed: Seed for the random number generation. Defaults to 69.
+            predefined_nums: List of predefined random numbers.
 
         Raises:
             ValueError: If neither quantity nor predefined_nums is provided.

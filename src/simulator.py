@@ -21,10 +21,10 @@ from random_generator import RandomNumberGenerator
 
 def setup_logging(log_level):
     """
-    Set the logger for the app
+    Set up the logger for the application.
 
     Args:
-
+        log_level: The logging level to use.
     """
     logging.basicConfig(
         level=log_level,
@@ -107,10 +107,10 @@ def create_queues(config: Dict[str, Any]) -> List[Queue]:
 
 def main(input_file: str):
     """
-    Run the queue network simulation based on the provided input file with the configuration of the queues.
+    Run the queue network simulation based on the provided input file.
 
     Args:
-        input_file (str): Path to the simulator configuration file.
+        input_file: Path to the simulator configuration file.
     """
     setup_logging(logging.INFO)
     logger = logging.getLogger(__name__)

@@ -29,7 +29,7 @@ Thumbs.db
 
 # YAML files (except examples)
 *.yaml
-!examples/*.yaml
+!tests/yaml/*.yaml
 
 # Poetry
 poetry.lock

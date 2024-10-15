@@ -147,8 +147,8 @@ class Simulation:
         Initialize the Simulation.
 
         Args:
-            rng (RandomNumberGenerator): The random number generator to use.
-            queues_list (List[Queue]): The list of queues in the simulation.
+            rng: The random number generator to use.
+            queues_list: The list of queues in the simulation.
         """
         logger.info("Initializing Simulation")
         self.time = 0
