@@ -62,8 +62,8 @@ class Queue:
 
     name: str
     servers: int
-    arrival_time: Tuple[float, float]
     service_time: Tuple[float, float]
+    arrival_time: Optional[Tuple[float, float]] = None
     capacity: Optional[Union[int, float]] = None
     network: List[Tuple[Optional["Queue"], float]] = field(default_factory=list)
     arrival_start_time: Optional[float] = None
@@ -81,7 +81,7 @@ class Queue:
             raise InvalidQueueConfigurationError(
                 f"Queue {self.name} must have at least one server"
             )
-        if self.arrival_time[0] > self.arrival_time[1]:
+        if self.arrival_time and self.arrival_time[0] > self.arrival_time[1]:
             logger.error(
                 f"Invalid arrival time range for Queue {self.name}: {self.arrival_time}"
             )
@@ -114,8 +114,7 @@ class Queue:
         """
         A = (
             "D"
-            if self.arrival_start_time is not None
-            and self.arrival_time[0] == self.arrival_time[1]
+            if self.arrival_time and self.arrival_time[0] == self.arrival_time[1]
             else "G"
         )
         B = "D" if self.service_time[0] == self.service_time[1] else "G"
@@ -349,22 +348,20 @@ class Simulation:
             queue (Queue): The current queue.
 
         Returns:
-            Optional[Queue]: The selected next queue, or None if the client departs the system or out of random numbers.
+            Optional[Queue]: The selected next queue, or None if the client departs the system.
         """
         logger.debug(f"Selecting next queue from {queue.name}")
         if not queue.network:
             return None
 
-        r: Optional[float] = self.rng.random_uniform(0, 1)
-        if r is None:
-            return None
+        r: float = self.rng.random_uniform(0, 1)
         cumulative_prob: float = 0.0
         for next_queue, prob in queue.network:
             cumulative_prob += prob
             if r < cumulative_prob:
                 return next_queue
 
-        return None
+        return None  # Client leaves the system if no queue is selectede
 
     def accumulate_time(self):
         """

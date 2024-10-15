@@ -77,14 +77,21 @@ def create_queues(config: Dict[str, Any]) -> List[Queue]:
     logger.info("Creating queues from configuration")
     queues_dict: Dict[str, Queue] = {}
     for q_config in config["queuesList"]:
-        queue = Queue(
-            q_config["name"],
-            q_config["servers"],
-            (q_config["arrivalTimeMin"], q_config["arrivalTimeMax"]),
-            (q_config["serviceTimeMin"], q_config["serviceTimeMax"]),
-            capacity=q_config.get("capacity"),
-            arrival_start_time=q_config.get("arrivalStartTime"),
-        )
+        queue_args = {
+            "name": q_config["name"],
+            "servers": q_config["servers"],
+            "service_time": (q_config["serviceTimeMin"], q_config["serviceTimeMax"]),
+            "capacity": q_config.get("capacity"),
+        }
+        if "arrivalTimeMin" in q_config and "arrivalTimeMax" in q_config:
+            queue_args["arrival_time"] = (
+                q_config["arrivalTimeMin"],
+                q_config["arrivalTimeMax"],
+            )
+        if "arrivalStartTime" in q_config:
+            queue_args["arrival_start_time"] = q_config["arrivalStartTime"]
+
+        queue = Queue(**queue_args)
         queues_dict[queue.name] = queue
 
     # Set up network connections
@@ -101,7 +108,9 @@ def create_queues(config: Dict[str, Any]) -> List[Queue]:
                 )  # Probability of leaving the system
             queue.network = network
         else:
-            queue.network = [(None, 1.0)]  # Clients leave after service
+            queue.network = [
+                (None, 1.0)
+            ]  # Clients always leave after service if no network is defined
 
     return list(queues_dict.values())
 
