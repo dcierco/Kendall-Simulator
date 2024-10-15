@@ -155,7 +155,7 @@ def main(input_file: str, log_level: int = logging.INFO):
     # Print results
     logger.info("Printing simulation results")
     for queue in sim.queues_list:
-        print(f"Queue: {queue.name} ({queue.kendall_notation}): ")
+        print(f"Queue: {queue.name} ({queue.kendall_notation}):")
         total_time = sum(queue.time_at_service)
         for index, time in enumerate(queue.time_at_service):
             if time > 0:
