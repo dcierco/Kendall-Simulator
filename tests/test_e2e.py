@@ -1,15 +1,15 @@
 import os
 import sys
-import yaml
 import io
 import unittest
-from contextlib import redirect_stdout
 import logging
+from contextlib import redirect_stdout
 
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from simulator import main
+
 
 class TestE2E(unittest.TestCase):
 
@@ -35,6 +35,7 @@ class TestE2E(unittest.TestCase):
 
         # Compare output
         self.assertEqual(output.strip(), expected_output.strip())
+
 
 if __name__ == '__main__':
     unittest.main()
