@@ -185,7 +185,7 @@ class Simulation:
 
                 event_type = "CHEGADA" if event.event_type == "arrival" else "SAIDA"
                 logger.debug(
-                    f"Processing event: ({len(self.events) + 1}) {event_type},{self.time:.4f},-"
+                    f"Processing event: ({len(self.events) + 1}) {event_type}, {self.time: .4f}, -"
                 )
 
                 if event.event_type == "arrival":
@@ -309,7 +309,7 @@ class Simulation:
             arrival_time = self.time + inter_arrival_time
             heapq.heappush(self.events, Event(arrival_time, "arrival", queue))
             logger.debug(
-                f"- CHEGADA,{arrival_time:.4f},U({queue.arrival_time[0]},{queue.arrival_time[1]}) = {inter_arrival_time:.4f}"
+                f"- CHEGADA, {arrival_time: .4f}, U({queue.arrival_time[0]}, {queue.arrival_time[1]}) = {inter_arrival_time: .4f}"
             )
             return True
         except IndexError:
@@ -335,7 +335,7 @@ class Simulation:
             completion_time = self.time + service_time
             heapq.heappush(self.events, Event(completion_time, "departure", queue))
             logger.debug(
-                f"- SAIDA,{completion_time:.4f},U({queue.service_time[0]},{queue.service_time[1]}) = {service_time:.4f}"
+                f"- SAIDA, {completion_time: .4f}, U({queue.service_time[0]}, {queue.service_time[1]}) = {service_time: .4f}"
             )
             return True
         except IndexError:

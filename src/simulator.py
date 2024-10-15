@@ -155,7 +155,7 @@ def main(input_file: str, log_level: int = logging.INFO):
     # Print results
     logger.info("Printing simulation results")
     for queue in sim.queues_list:
-        print(f"Queue: {queue.name} ({queue.kendall_notation}):")
+        print(f"Queue: {queue.name} ({queue.kendall_notation}): ")
         total_time = sum(queue.time_at_service)
         for index, time in enumerate(queue.time_at_service):
             if time > 0:
@@ -169,10 +169,16 @@ def main(input_file: str, log_level: int = logging.INFO):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the Kendall Queue Network Simulator.")
+    parser = argparse.ArgumentParser(
+        description="Run the Kendall Queue Network Simulator."
+    )
     parser.add_argument("config_file", help="Path to the configuration file")
-    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                        help="Set the logging level")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set the logging level",
+    )
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
