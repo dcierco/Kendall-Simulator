@@ -11,6 +11,7 @@ Example:
     python simulator.py config.yaml
 """
 
+import argparse
 import logging
 import sys
 import yaml
@@ -32,7 +33,7 @@ def setup_logging(log_level):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     logger = logging.getLogger(__name__)
-    logger.info(f"Logging set up with level: {log_level}")
+    logger.info(f"Logging set up with level: {logging.getLevelName(log_level)}")
 
 
 def load_config(file_path: str) -> Dict[str, Any]:
@@ -105,14 +106,15 @@ def create_queues(config: Dict[str, Any]) -> List[Queue]:
     return list(queues_dict.values())
 
 
-def main(input_file: str):
+def main(input_file: str, log_level: int = logging.INFO):
     """
     Run the queue network simulation based on the provided input file.
 
     Args:
         input_file: Path to the simulator configuration file.
+        log_level: Logging level to use. Defaults to logging.INFO.
     """
-    setup_logging(logging.INFO)
+    setup_logging(log_level)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting simulation with input file: {input_file}")
 
@@ -167,7 +169,11 @@ def main(input_file: str):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python simulator.py <config_file>")
-        sys.exit(1)
-    main(sys.argv[1])
+    parser = argparse.ArgumentParser(description="Run the Kendall Queue Network Simulator.")
+    parser.add_argument("config_file", help="Path to the configuration file")
+    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                        help="Set the logging level")
+    args = parser.parse_args()
+
+    log_level = getattr(logging, args.log_level.upper())
+    main(args.config_file, log_level=log_level)

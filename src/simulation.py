@@ -308,7 +308,7 @@ class Simulation:
             )
             arrival_time = self.time + inter_arrival_time
             heapq.heappush(self.events, Event(arrival_time, "arrival", queue))
-            print(
+            logger.debug(
                 f"- CHEGADA,{arrival_time:.4f},U({queue.arrival_time[0]},{queue.arrival_time[1]}) = {inter_arrival_time:.4f}"
             )
             return True
@@ -334,7 +334,7 @@ class Simulation:
             )
             completion_time = self.time + service_time
             heapq.heappush(self.events, Event(completion_time, "departure", queue))
-            print(
+            logger.debug(
                 f"- SAIDA,{completion_time:.4f},U({queue.service_time[0]},{queue.service_time[1]}) = {service_time:.4f}"
             )
             return True
@@ -379,19 +379,19 @@ class Simulation:
         """
         Print a summary of the simulation results.
         """
-        logger.info("Printing simulation summary")
-        print(f"Simulation ended at time {self.time}")
-        print(f"Random numbers used: {self.rng.index}")
-        print(f"Remaining events: {len(self.events)}")
-        print(f"Last processed event time: {self.time}")
+        logger.debug("Printing simulation summary")
+        logger.debug(f"Simulation ended at time {self.time}")
+        logger.debug(f"Random numbers used: {self.rng.index}")
+        logger.debug(f"Remaining events: {len(self.events)}")
+        logger.debug(f"Last processed event time: {self.time}")
 
         for event in self.events:
-            print(
+            logger.debug(
                 f"  Unprocessed event: type={event.event_type}, time={event.time}, queue={event.origin_queue.name}"
             )
 
         for queue in self.queues_list:
-            print(
+            logger.debug(
                 f"Queue {queue.name}: clients = {queue.clients}, losses = {queue.losses}"
             )
-        print("\n")
+        logger.debug("\n")
