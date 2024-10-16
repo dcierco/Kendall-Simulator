@@ -1,7 +1,7 @@
-src
-===
+   kendall_simulator
+   =================
 
-.. toctree::
-   :maxdepth: 4
+   .. toctree::
+      :maxdepth: 4
 
-   src
+      kendall_simulator
