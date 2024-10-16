@@ -14,6 +14,7 @@ from random_generator import RandomNumberGenerator
 from exceptions import (
     InvalidQueueConfigurationError,
     InvalidEventError,
+    OutOfRandomNumbersError,
 )
 
 # Setting up logger
@@ -157,10 +158,14 @@ class Simulation:
         self.events: List[Event] = []
         self.previous_time = 0
 
+        # Initialize events for queues with external arrivals
         for queue in self.queues_list:
-            if queue.arrival_start_time is not None:
-                heapq.heappush(
-                    self.events, Event(queue.arrival_start_time, "arrival", queue)
+            if queue.arrival_start_time is not None and queue.arrival_time is not None:
+                initial_arrival_time = queue.arrival_start_time
+                initial_event = Event(initial_arrival_time, "arrival", queue)
+                heapq.heappush(self.events, initial_event)
+                logger.debug(
+                    f"Initialized arrival event for {queue.name} at time {initial_arrival_time:.4f}"
                 )
 
     def execute(self):
@@ -170,35 +175,50 @@ class Simulation:
         This method processes events in chronological order, updating the state
         of the queues and collecting statistics until no more random numbers are available.
         """
-        logger.info("Starting simulation execution")
-        logger.debug("Evento,Tempo,Sorteio")
+        logger.debug("Starting simulation execution")
+        eventIndex = 0
+
         try:
             while self.events:
                 event = heapq.heappop(self.events)
 
-                if len(self.rng.nums) == self.rng.index:
-                    logger.warning("Ran out of random numbers")
-                    break
+                # Update the simulation time to the event time
+                self.accumulate_time(event)
 
-                self.time = event.time
-
-                event_type = "CHEGADA" if event.event_type == "arrival" else "SAIDA"
                 logger.debug(
-                    f"Processing event: ({len(self.events) + 1}) {event_type}, {self.time: .4f}, -"
+                    f"Processing event: ({eventIndex}) {event.event_type}, {self.time:.4f}, -"
                 )
 
-                if event.event_type == "arrival":
-                    if not self.process_arrival(event):
-                        break
-                elif event.event_type == "departure":
-                    if not self.process_departure(event):
-                        break
-                elif event.event_type == "passage":
-                    if not self.process_passage(event):
-                        break
-                else:
-                    logger.error(f"Invalid event type: {event.event_type}")
-                    raise InvalidEventError(f"Unknown event type: {event.event_type}")
+                try:
+                    if event.event_type == "arrival":
+                        self.process_arrival(event)
+                    elif event.event_type == "departure":
+                        self.process_departure(event)
+                    elif event.event_type == "passage":
+                        self.process_passage(event)
+                    else:
+                        logger.error(f"Invalid event type: {event.event_type}")
+                        raise InvalidEventError(
+                            f"Unknown event type: {event.event_type}"
+                        )
+                except OutOfRandomNumbersError:
+                    logger.warning("Ran out of random numbers. Stopping simulation.")
+                    break
+                finally:
+                    eventIndex += 1
+                    logger.debug(f"\nEnd of the iteration {eventIndex}.")
+                    logger.debug(f"Simulation global time: {self.time:.4f}")
+                    logger.debug("Events on the scheduler: ")
+                    for event in self.events:
+                        logger.debug(f"Event {event.event_type} at time {event.time}")
+
+                    for queue in self.queues_list:
+                        logger.debug(f"Queue: {queue.name} ({queue.kendall_notation}):")
+                        for index, time in enumerate(queue.time_at_service):
+                            if time > 0:
+                                logger.debug(f"State: {index}, Time: {time:.4f}")
+                        logger.debug(f"Clients: {queue.clients}")
+                        logger.debug(f"Losses: {queue.losses}\n")
 
         except InvalidEventError as e:
             logger.error(f"Simulation error: {str(e)}")
@@ -206,139 +226,108 @@ class Simulation:
             logger.exception(f"Unexpected error occurred: {str(e)}")
 
         logger.info("Simulation execution completed")
-        self.print_simulation_summary()
+        logger.debug(f"Random numbers used: {self.rng.index}")
+        logger.debug(f"Remaining events: {len(self.events)}")
+        logger.debug(f"Last processed event time: {self.time:.4f}")
 
-    def process_arrival(self, event: Event) -> bool:
+        for event in self.events:
+            logger.debug(
+                f"  Unprocessed event: type={event.event_type}, time={event.time:.4f}, queue={event.origin_queue.name}"
+            )
+
+    def process_arrival(self, event: Event):
         """
         Process an arrival event.
 
         Args:
             event (Event): The arrival event to process.
-
-        Returns:
-            bool: False if out of random numbers, True otherwise.
         """
-        logger.debug(f"Processing arrival event for queue {event.origin_queue.name}")
         queue = event.origin_queue
-        self.accumulate_time()
 
         if queue.capacity is None or queue.clients < queue.capacity:
             queue.clients += 1
             if queue.clients <= queue.servers:
-                if not self.schedule_service_completion(queue):
-                    return False
+                self.schedule_event("departure", queue)
         else:
             queue.losses += 1
             self.losses += 1
 
-        return self.schedule_arrival(queue)
+        if queue.arrival_time is not None:
+            self.schedule_event("arrival", queue)
 
-    def process_departure(self, event: Event) -> bool:
+    def process_departure(self, event: Event):
         """
         Process a departure event.
 
         Args:
             event (Event): The departure event to process.
-
-        Returns:
-            bool: False if out of random numbers, True otherwise.
         """
-        logger.debug(f"Processing departure event for queue {event.origin_queue.name}")
         queue = event.origin_queue
-        self.accumulate_time()
 
         queue.clients -= 1
         if queue.clients >= queue.servers:
-            return self.schedule_service_completion(queue)
-        return True
+            self.schedule_event("departure", queue)
 
-    def process_passage(self, event: Event) -> bool:
+        next_queue = self.select_next_queue(queue)
+        if next_queue:
+            self.schedule_event("passage", queue, destination_queue=next_queue)
+
+    def process_passage(self, event: Event):
         """
         Process a passage event (client moving from one queue to another).
 
         Args:
             event (Event): The passage event to process.
-
-        Returns:
-            bool: False if out of random numbers, True otherwise.
         """
-        logger.debug(
-            f"Processing passage event from queue {event.origin_queue.name} to queue {event.destination_queue.name if event.destination_queue else 'exit'}"
-        )
         origin_queue = event.origin_queue
         dest_queue = event.destination_queue
-        self.accumulate_time()
 
         origin_queue.clients -= 1
         if origin_queue.clients >= origin_queue.servers:
-            if not self.schedule_service_completion(origin_queue):
-                return False
+            self.schedule_event("departure", origin_queue)
 
         if dest_queue is not None:
             if dest_queue.capacity is None or dest_queue.clients < dest_queue.capacity:
                 dest_queue.clients += 1
                 if dest_queue.clients <= dest_queue.servers:
-                    if not self.schedule_service_completion(dest_queue):
-                        return False
+                    self.schedule_event("departure", dest_queue)
             else:
                 dest_queue.losses += 1
                 self.losses += 1
         else:
             self.losses += 1
 
-        return True
-
-    def schedule_arrival(self, queue: Queue) -> bool:
-        """
-        Schedule an arrival event for the given queue.
-
-        Args:
-            queue (Queue): The queue for which to schedule an arrival.
-
-        Returns:
-            bool: True if the arrival was scheduled successfully, False otherwise.
-        """
-        logger.debug(f"Scheduling arrival for queue {queue.name}")
+    def schedule_event(
+        self, event_type: str, queue: Queue, destination_queue: Optional[Queue] = None
+    ):
         try:
-            r = self.rng.random_uniform(0, 1)
-            inter_arrival_time = (
-                queue.arrival_time[0]
-                + (queue.arrival_time[1] - queue.arrival_time[0]) * r
-            )
-            arrival_time = self.time + inter_arrival_time
-            heapq.heappush(self.events, Event(arrival_time, "arrival", queue))
+            if event_type == "arrival" and queue.arrival_time is not None:
+                r = self.rng.random_uniform(0, 1)
+                time = (
+                    self.time
+                    + queue.arrival_time[0]
+                    + (queue.arrival_time[1] - queue.arrival_time[0]) * r
+                )
+            elif event_type in ["departure", "passage"]:
+                r = self.rng.random_uniform(0, 1)
+                time = (
+                    self.time
+                    + queue.service_time[0]
+                    + (queue.service_time[1] - queue.service_time[0]) * r
+                )
+            else:
+                raise ValueError(f"Invalid event type: {event_type}")
+
+            event = Event(time, event_type, queue, destination_queue)
+            heapq.heappush(self.events, event)
             logger.debug(
-                f"- CHEGADA, {arrival_time: .4f}, U({queue.arrival_time[0]}, {queue.arrival_time[1]}) = {inter_arrival_time: .4f}"
+                f"Scheduled {event_type} event for {queue.name} at time {time:.4f}"
             )
-            return True
-        except IndexError:
-            return False
-
-    def schedule_service_completion(self, queue: Queue) -> bool:
-        """
-        Schedule a service completion event for the given queue.
-
-        Args:
-            queue (Queue): The queue for which to schedule a service completion.
-
-        Returns:
-            bool: True if the service completion was scheduled successfully, False otherwise.
-        """
-        logger.debug(f"Scheduling service completion for queue {queue.name}")
-        try:
-            r = self.rng.random_uniform(0, 1)
-            service_time = (
-                queue.service_time[0]
-                + (queue.service_time[1] - queue.service_time[0]) * r
+        except OutOfRandomNumbersError:
+            logger.warning(
+                f"Could not schedule {event_type} event for {queue.name} due to lack of random numbers"
             )
-            completion_time = self.time + service_time
-            heapq.heappush(self.events, Event(completion_time, "departure", queue))
-            logger.debug(
-                f"- SAIDA, {completion_time: .4f}, U({queue.service_time[0]}, {queue.service_time[1]}) = {service_time: .4f}"
-            )
-            return True
-        except IndexError:
-            return False
+            raise
 
     def select_next_queue(self, queue: Queue) -> Optional[Queue]:
         """
@@ -354,41 +343,27 @@ class Simulation:
         if not queue.network:
             return None
 
-        r: float = self.rng.random_uniform(0, 1)
+        r = self.rng.random_uniform(0, 1)
+        if r is None:
+            logger.warning("Could not select next queue due to lack of random numbers")
+            return None
+
         cumulative_prob: float = 0.0
         for next_queue, prob in queue.network:
             cumulative_prob += prob
             if r < cumulative_prob:
                 return next_queue
 
-        return None  # Client leaves the system if no queue is selectede
+        return None  # Client leaves the system if no queue is selected
 
-    def accumulate_time(self):
+    def accumulate_time(self, event: Event):
         """
         Accumulate time spent in the current state for all queues.
+
+        Args:
+            event (Event): The current event being processed.
         """
-        delta = self.time - self.previous_time
+        delta = event.time - self.time
         for queue in self.queues_list:
             queue.time_at_service[queue.clients] += delta
-        self.previous_time = self.time
-
-    def print_simulation_summary(self):
-        """
-        Print a summary of the simulation results.
-        """
-        logger.debug("Printing simulation summary")
-        logger.debug(f"Simulation ended at time {self.time}")
-        logger.debug(f"Random numbers used: {self.rng.index}")
-        logger.debug(f"Remaining events: {len(self.events)}")
-        logger.debug(f"Last processed event time: {self.time}")
-
-        for event in self.events:
-            logger.debug(
-                f"  Unprocessed event: type={event.event_type}, time={event.time}, queue={event.origin_queue.name}"
-            )
-
-        for queue in self.queues_list:
-            logger.debug(
-                f"Queue {queue.name}: clients = {queue.clients}, losses = {queue.losses}"
-            )
-        logger.debug("\n")
+        self.time = event.time

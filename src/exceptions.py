@@ -20,3 +20,9 @@ class InvalidEventError(SimulationError):
     """Raised when an invalid event is encountered."""
 
     pass
+
+
+class OutOfRandomNumbersError(SimulationError):
+    """Raised when the random number generator runs out of numbers."""
+
+    pass

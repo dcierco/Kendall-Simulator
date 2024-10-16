@@ -9,6 +9,7 @@ and generation of random numbers using the linear congruential method.
 from typing import List, Optional
 import matplotlib.pyplot as plt
 import logging
+from exceptions import OutOfRandomNumbersError
 
 # Setting up logger
 logger = logging.getLogger(__name__)
@@ -181,14 +182,14 @@ class RandomNumberGenerator:
             b (float): The upper bound of the range.
 
         Returns:
-            float: A random number between a and b
+            float: A random number between a and b.
 
         Raises:
-            IndexError: If the generator runs out of random numbers
+            OutOfRandomNumbersError: If the generator runs out of random numbers.
         """
         if self.index >= len(self.nums):
-            logger.error("Ran out of random numbers")
-            raise IndexError("Ran out of random numbers")
+            logger.warning("Ran out of random numbers")
+            raise OutOfRandomNumbersError("Ran out of random numbers")
         r = self.nums[self.index]
         self.index += 1
         return a + (b - a) * r

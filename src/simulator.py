@@ -170,8 +170,9 @@ def main(input_file: str, log_level: int = logging.INFO):
             if time > 0:
                 probability = round((time / total_time) * 100, 4)
                 print(f"State: {index}, Time: {time}, Probability: {probability}%")
+        if logger.level == 0:
+            print(f"Number of remaining clients: {queue.clients}")
         print(f"Losses: {queue.losses}")
-        print()
 
     print(f"Simulation time: {sim.time} seconds")
     print(f"Total losses: {sim.losses}")
