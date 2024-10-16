@@ -20,7 +20,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -90,5 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_docs
     steps:
-      - id: deployment
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: Deployment
         uses: sphinx-notes/pages@v3
