@@ -1,6 +1,6 @@
 # 🚦 Kendall Queue Network Simulator
 
-[![codecov](https://codecov.io/gh/dcierco/Kendall-Simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/dcierco/Kendall-Simulator)
+[![codecov](https://codecov.io/gh/dcierco/Kendall-Simulator/branch/main/graph/badge.svg?token=XAHrjieYqX)](https://codecov.io/gh/dcierco/Kendall-Simulator)
 
 ## 📋 Table of Contents
 - [Overview](#overview)
