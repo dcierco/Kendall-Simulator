@@ -18,13 +18,18 @@ jobs:
           poetry install
       - name: Run tests with coverage
         run: |
-          poetry run pytest --cov=kendall_simulator --cov-report=xml
+          poetry run pytest --cov --junitxml=junit.xml -o junit_family=legacy
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Check style
         run: |
           poetry run flake8 .
