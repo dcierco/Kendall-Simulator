@@ -1,3 +1,4 @@
+# kendall-simulator/src/simulator.py
 """
 Kendall Queue Network Simulator
 
@@ -9,6 +10,9 @@ Usage:
 
 Example:
     python simulator.py config.yaml
+
+This module serves as the main entry point for running simulations. It handles
+configuration loading, queue creation, and simulation execution.
 """
 
 import argparse
@@ -16,11 +20,11 @@ import logging
 import sys
 import yaml
 from typing import Dict, Any, List, Optional, Tuple, cast
-from simulation import Simulation, Queue
-from random_generator import RandomNumberGenerator
+from kendall_simulator.simulation import Simulation, Queue
+from kendall_simulator.random_generator import RandomNumberGenerator
 
 
-def setup_logging(log_level):
+def setup_logging(log_level: int) -> None:
     """
     Set up the logger for the application.
 
@@ -41,10 +45,10 @@ def load_config(file_path: str) -> Dict[str, Any]:
     Load the configuration from a YAML file.
 
     Args:
-        file_path (str): Path to the YAML configuration file.
+        file_path: Path to the YAML configuration file.
 
     Returns:
-        Dict[str, Any]: A dictionary containing the configuration.
+        A dictionary containing the configuration.
 
     Raises:
         FileNotFoundError: If the specified file is not found.
@@ -56,10 +60,10 @@ def load_config(file_path: str) -> Dict[str, Any]:
         with open(file_path, "r") as f:
             return cast(Dict[str, Any], yaml.safe_load(f))
     except FileNotFoundError:
-        print(f"Error: Configuration file '{file_path}' not found.")
+        logger.error(f"Configuration file '{file_path}' not found.")
         sys.exit(1)
     except yaml.YAMLError as e:
-        print(f"Error parsing the configuration file: {e}")
+        logger.error(f"Error parsing the configuration file: {e}")
         sys.exit(1)
 
 
@@ -68,33 +72,61 @@ def create_queues(config: Dict[str, Any]) -> List[Queue]:
     Create Queue objects based on the configuration.
 
     Args:
-        config (Dict[str, Any]): The configuration dictionary.
+        config: The configuration dictionary.
 
     Returns:
-        List[Queue]: A list of Queue objects.
+        A list of Queue objects.
     """
     logger = logging.getLogger(__name__)
     logger.info("Creating queues from configuration")
     queues_dict: Dict[str, Queue] = {}
-    for q_config in config["queuesList"]:
-        queue_args = {
-            "name": q_config["name"],
-            "servers": q_config["servers"],
-            "service_time": (q_config["serviceTimeMin"], q_config["serviceTimeMax"]),
-            "capacity": q_config.get("capacity"),
-        }
-        if "arrivalTimeMin" in q_config and "arrivalTimeMax" in q_config:
-            queue_args["arrival_time"] = (
-                q_config["arrivalTimeMin"],
-                q_config["arrivalTimeMax"],
-            )
-        if "arrivalStartTime" in q_config:
-            queue_args["arrival_start_time"] = q_config["arrivalStartTime"]
 
-        queue = Queue(**queue_args)
+    for q_config in config["queuesList"]:
+        queue = _create_single_queue(q_config)
         queues_dict[queue.name] = queue
 
-    # Set up network connections
+    _setup_network_connections(config, queues_dict)
+
+    return list(queues_dict.values())
+
+
+def _create_single_queue(q_config: Dict[str, Any]) -> Queue:
+    """
+    Create a single Queue object from its configuration.
+
+    Args:
+        q_config: Configuration for a single queue.
+
+    Returns:
+        A Queue object.
+    """
+    queue_args = {
+        "name": q_config["name"],
+        "servers": q_config["servers"],
+        "service_time": (q_config["serviceTimeMin"], q_config["serviceTimeMax"]),
+        "capacity": q_config.get("capacity"),
+    }
+    if "arrivalTimeMin" in q_config and "arrivalTimeMax" in q_config:
+        queue_args["arrival_time"] = (
+            q_config["arrivalTimeMin"],
+            q_config["arrivalTimeMax"],
+        )
+    if "arrivalStartTime" in q_config:
+        queue_args["arrival_start_time"] = q_config["arrivalStartTime"]
+
+    return Queue(**queue_args)
+
+
+def _setup_network_connections(
+    config: Dict[str, Any], queues_dict: Dict[str, Queue]
+) -> None:
+    """
+    Set up network connections between queues.
+
+    Args:
+        config: The full configuration dictionary.
+        queues_dict: Dictionary of created Queue objects.
+    """
     for q_config in config["queuesList"]:
         queue = queues_dict[q_config["name"]]
         if "network" in q_config:
@@ -108,14 +140,12 @@ def create_queues(config: Dict[str, Any]) -> List[Queue]:
                 )  # Probability of leaving the system
             queue.network = network
         else:
-            queue.network = [
-                (None, 1.0)
-            ]  # Clients always leave after service if no network is defined
-
-    return list(queues_dict.values())
+            queue.network = (
+                None  # Clients always leave after service if no network is defined
+            )
 
 
-def main(input_file: str, log_level: int = logging.INFO):
+def main(input_file: str, log_level: int = logging.INFO) -> None:
     """
     Run the queue network simulation based on the provided input file.
 
@@ -128,8 +158,32 @@ def main(input_file: str, log_level: int = logging.INFO):
     logger.info(f"Starting simulation with input file: {input_file}")
 
     config = load_config(input_file)
+    rng = _initialize_random_number_generator(config)
+    queues_list = create_queues(config)
 
-    # Extract simulation parameters
+    logger.info("Initializing and running simulation")
+    sim = Simulation(rng, queues_list)
+    sim.execute()
+
+    _print_simulation_results(sim)
+
+
+def _initialize_random_number_generator(
+    config: Dict[str, Any]
+) -> RandomNumberGenerator:
+    """
+    Initialize the random number generator based on configuration.
+
+    Args:
+        config: The configuration dictionary.
+
+    Returns:
+        An initialized RandomNumberGenerator object.
+
+    Raises:
+        ValueError: If neither 'numbers' nor 'quantityNums' is defined in the configuration.
+    """
+    logger = logging.getLogger(__name__)
     predefined_nums: Optional[List[float]] = config.get("numbers")
     quantity_nums: Optional[int] = config.get("quantityNums")
     seed: int = config.get("seed", 69)
@@ -138,13 +192,12 @@ def main(input_file: str, log_level: int = logging.INFO):
         f"Simulation parameters: predefined_nums={predefined_nums is not None}, quantity_nums={quantity_nums}, seed={seed}"
     )
 
-    # Initialize random number generator
     if predefined_nums is not None:
         logger.info("Using predefined random numbers")
-        rng = RandomNumberGenerator(predefined_nums=predefined_nums)
+        return RandomNumberGenerator(predefined_nums=predefined_nums)
     elif quantity_nums is not None:
         logger.info(f"Generating {quantity_nums} random numbers with seed {seed}")
-        rng = RandomNumberGenerator(quantity=quantity_nums, seed=seed)
+        return RandomNumberGenerator(quantity=quantity_nums, seed=seed)
     else:
         logger.error(
             "Neither 'numbers' nor 'quantityNums' defined in the configuration"
@@ -153,16 +206,18 @@ def main(input_file: str, log_level: int = logging.INFO):
             "Either 'numbers' or 'quantityNums' must be defined in the configuration."
         )
 
-    # Create queues
-    queues_list = create_queues(config)
 
-    # Initialize and run simulation
-    logger.info("Initializing and running simulation")
-    sim = Simulation(rng, queues_list)
-    sim.execute()
+def _print_simulation_results(sim: Simulation) -> None:
+    """
+    Print the results of the simulation.
 
-    # Print results
+    Args:
+        sim: The completed Simulation object.
+    """
+    logger = logging.getLogger(__name__)
+    total_losses = 0
     logger.info("Printing simulation results")
+
     for queue in sim.queues_list:
         print(f"Queue: {queue.name} ({queue.kendall_notation}):")
         total_time = sum(queue.time_at_service)
@@ -173,9 +228,10 @@ def main(input_file: str, log_level: int = logging.INFO):
         if logger.level == 0:
             print(f"Number of remaining clients: {queue.clients}")
         print(f"Losses: {queue.losses}")
+        total_losses += queue.losses
 
     print(f"Simulation time: {sim.time} seconds")
-    print(f"Total losses: {sim.losses}")
+    print(f"Total losses: {total_losses}")
 
 
 if __name__ == "__main__":

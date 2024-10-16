@@ -1,0 +1,53 @@
+numbers:
+  - 0.2176
+  - 0.0103
+  - 0.1109
+  - 0.3456
+  - 0.9910
+  - 0.2323
+  - 0.9211
+  - 0.0322
+  - 0.1211
+  - 0.5131
+  - 0.7208
+  - 0.9172
+  - 0.9922
+  - 0.8324
+  - 0.5011
+  - 0.2931
+
+queuesList:
+  - name: Q1
+    servers: 1
+    capacity: 5
+    arrivalTimeMin: 20.0
+    arrivalTimeMax: 40.0
+    serviceTimeMin: 10.0
+    serviceTimeMax: 12.0
+    arrivalStartTime: 45.0
+    network:
+      - [Q2, 0.78]
+      - [Q3, 0.12]
+
+  - name: Q2
+    servers: 2
+    capacity: 5
+    serviceTimeMin: 30.0
+    serviceTimeMax: 120.0
+    network:
+      - [Q1, 0.1]
+      - [Q3, 0.27]
+      - [Q4, 0.63]
+
+  - name: Q3
+    servers: 2
+    capacity: 5
+    serviceTimeMin: 15.0
+    serviceTimeMax: 60.0
+    network:
+      - [Q4, 1.0]
+
+  - name: Q4
+    servers: 3
+    serviceTimeMin: 5.0
+    serviceTimeMax: 15.0

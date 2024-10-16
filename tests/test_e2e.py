@@ -1,16 +1,10 @@
+# kendall-simulator/tests/test_e2e.py
 import os
-import sys
 import io
 import unittest
 import logging
 from contextlib import redirect_stdout
-
-# Add the src directory to the Python path
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
-)
-
-from simulator import main
+from kendall_simulator.simulator import main
 
 
 class TestE2E(unittest.TestCase):

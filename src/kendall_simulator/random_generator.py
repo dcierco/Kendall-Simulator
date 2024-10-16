@@ -1,17 +1,22 @@
+# kendall-simulator/src/random_generator.py
 """
 Random Number Generator module for the Kendall Queue Network Simulator.
 
 This module provides functionality for generating and managing random numbers
 used in the simulation. It supports both predefined lists of random numbers
 and generation of random numbers using the linear congruential method.
+
+Key components:
+    - RandomNumberGenerator: Main class for generating and managing random numbers.
+    - linear_congruential_method: Function to generate random numbers using LCM.
+    - Utility functions for normalizing, printing, and writing random numbers.
 """
 
 from typing import List, Optional
 import matplotlib.pyplot as plt
 import logging
-from exceptions import OutOfRandomNumbersError
+from kendall_simulator.exceptions import OutOfRandomNumbersError
 
-# Setting up logger
 logger = logging.getLogger(__name__)
 
 
@@ -22,12 +27,12 @@ def linear_congruential_method(
     Generate random numbers using the linear congruential method.
 
     Args:
-        a (int): Multiplier
-        m (int): Modulus
-        c (int): Increment
-        x0 (int): Seed
-        random_nums (List[int]): List to store generated numbers
-        num_of_random_nums (int): Number of random numbers to generate
+        a: Multiplier.
+        m: Modulus.
+        c: Increment.
+        x0: Seed.
+        random_nums: List to store generated numbers.
+        num_of_random_nums: Number of random numbers to generate.
     """
     random_nums[0] = x0
 
@@ -40,7 +45,7 @@ def print_nums(random_nums: List[float]) -> None:
     Print the generated random numbers.
 
     Args:
-        random_nums (List[float]): List of random numbers
+        random_nums: List of random numbers.
     """
     for num in random_nums:
         print(num, end=" ")
@@ -51,11 +56,11 @@ def normalize_nums(max_num: int, random_nums: List[int]) -> List[float]:
     Normalize the generated random numbers.
 
     Args:
-        max_num (int): Maximum value in the random_nums list
-        random_nums (List[int]): List of random numbers
+        max_num: Maximum value in the random_nums list.
+        random_nums: List of random numbers.
 
     Returns:
-        List[float]: Normalized list of random numbers
+        Normalized list of random numbers.
     """
     return [round(num / max_num, 4) for num in random_nums]
 
@@ -65,8 +70,8 @@ def generate_graph(x: List[int], y: List[float]) -> None:
     Generate a graph of the random numbers.
 
     Args:
-        x (List[int]): List of indices
-        y (List[float]): List of random numbers
+        x: List of indices.
+        y: List of random numbers.
     """
     plt.scatter(x, y)
     plt.title("Pseudo-random generated numbers")
@@ -80,8 +85,8 @@ def write_nums_to_file(file_name: str, content: List[float]) -> None:
     Write the random numbers to a file.
 
     Args:
-        file_name (str): Name of the file to write to
-        content (List[float]): List of random numbers to write
+        file_name: Name of the file to write to.
+        content: List of random numbers to write.
     """
     with open(file_name, "w") as f:
         for num in content:
@@ -96,13 +101,13 @@ class RandomNumberGenerator:
     generate new random numbers using the linear congruential method.
 
     Attributes:
-        seed (int): Seed for the random number generation.
-        a (int): Multiplier for the linear congruential method.
-        m (int): Modulus for the linear congruential method.
-        c (int): Increment for the linear congruential method.
-        index (int): Current index in the list of random numbers.
-        nums (List[float]): List of random numbers.
-        quantity (int): Total number of random numbers.
+        seed: Seed for the random number generation.
+        a: Multiplier for the linear congruential method.
+        m: Modulus for the linear congruential method.
+        c: Increment for the linear congruential method.
+        index: Current index in the list of random numbers.
+        nums: List of random numbers.
+        quantity: Total number of random numbers.
     """
 
     def __init__(
@@ -124,15 +129,15 @@ class RandomNumberGenerator:
         """
         logger.info(f"Initializing RandomNumberGenerator with seed {seed}")
 
-        self.seed = seed
-        self.a = 214013
-        self.m = 4294967296
-        self.c = 2531011
-        self.index = 0
+        self.seed: int = seed
+        self.a: int = 214013
+        self.m: int = 4294967296
+        self.c: int = 2531011
+        self.index: int = 0
 
         if predefined_nums is not None:
-            self.nums = predefined_nums
-            self.quantity = len(predefined_nums)
+            self.nums: List[float] = predefined_nums
+            self.quantity: int = len(predefined_nums)
         elif quantity is not None:
             self.quantity = quantity
             self.nums = self._generate_numbers()
@@ -144,7 +149,7 @@ class RandomNumberGenerator:
         Generate the random numbers using the linear congruential method.
 
         Returns:
-            List[float]: List of generated random numbers
+            List of generated random numbers.
         """
         logger.debug(f"Generating {self.quantity} random numbers")
 
@@ -160,7 +165,7 @@ class RandomNumberGenerator:
         Get the generated random numbers.
 
         Returns:
-            List[float]: List of generated random numbers
+            List of generated random numbers.
         """
         return self.nums
 
@@ -169,7 +174,7 @@ class RandomNumberGenerator:
         Write the generated numbers to a file.
 
         Args:
-            file_name (str, optional): Name of the file to write to. Defaults to "generated_numbers.txt".
+            file_name: Name of the file to write to. Defaults to "generated_numbers.txt".
         """
         write_nums_to_file(file_name, self.nums)
 
@@ -178,21 +183,30 @@ class RandomNumberGenerator:
         Generates a random number uniformly distributed between a and b.
 
         Args:
-            a (float): The lower bound of the range.
-            b (float): The upper bound of the range.
+            a: The lower bound of the range.
+            b: The upper bound of the range.
 
         Returns:
-            float: A random number between a and b.
+            A random number between a and b.
 
         Raises:
             OutOfRandomNumbersError: If the generator runs out of random numbers.
         """
-        if self.index >= len(self.nums):
+        if not self.hasNext():
             logger.warning("Ran out of random numbers")
             raise OutOfRandomNumbersError("Ran out of random numbers")
         r = self.nums[self.index]
         self.index += 1
         return a + (b - a) * r
+
+    def hasNext(self) -> bool:
+        """
+        Check if there are more random numbers available.
+
+        Returns:
+            True if there are more random numbers, False otherwise.
+        """
+        return self.index < len(self.nums)
 
 
 if __name__ == "__main__":

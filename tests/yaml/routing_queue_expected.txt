@@ -1,0 +1,22 @@
+Queue: Q1 (G/G/1/5/∞/FCFS):
+State: 0, Time: 94.00880000000001, Probability: 73.6135%
+State: 1, Time: 33.69720000000001, Probability: 26.3865%
+Number of remaining clients: 1
+Losses: 0
+Queue: Q2 (G/G/2/5/∞/FCFS):
+State: 0, Time: 55.0206, Probability: 43.0838%
+State: 1, Time: 24.039600000000007, Probability: 18.8242%
+State: 2, Time: 20.636200000000002, Probability: 16.1591%
+State: 3, Time: 28.009600000000006, Probability: 21.9329%
+Number of remaining clients: 3
+Losses: 0
+Queue: Q3 (G/G/2/5/∞/FCFS):
+State: 0, Time: 127.70600000000002, Probability: 100.0%
+Number of remaining clients: 0
+Losses: 0
+Queue: Q4 (G/G/3/∞/∞/FCFS):
+State: 0, Time: 127.70600000000002, Probability: 100.0%
+Number of remaining clients: 0
+Losses: 0
+Simulation time: 127.70600000000002 seconds
+Total losses: 0

@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "The Kendall Queue Network Simulator is a powerful tool designed to model and analyze complex queueing systems. It allows users to simulate networks of queues with various configurations, providing insights into system behavior, bottlenecks, and performance metrics."
 authors = ["Daniel Cierco <daniel_cierco@live.com>"]
 readme = "README.md"
+packages = [
+    { include = "kendall_simulator", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
