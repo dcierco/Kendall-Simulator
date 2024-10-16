@@ -1,5 +1,7 @@
 # 🚦 Kendall Queue Network Simulator
 
+[![codecov](https://codecov.io/gh/dcierco/Kendall-Simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/dcierco/Kendall-Simulator)
+
 ## 📋 Table of Contents
 - [Overview](#overview)
 - [Features](#features)
@@ -41,25 +43,29 @@ This simulator is particularly useful for:
    cd kendall-queue-simulator
    ```
 
-2. Create a virtual environment (optional but recommended):
+2. Install Poetry (if not already installed):
    ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   pip install poetry
    ```
 
-3. Install the required packages:
+3. Install dependencies and create a virtual environment:
    ```
-   pip install -r requirements.txt
+   poetry install
+   ```
+
+4. Activate the virtual environment:
+   ```
+   poetry shell
    ```
 
 ## 🚀 Usage
 
-1. Create a configuration file (e.g., `my_config.yaml`) based on the example in `examples/example_config.yaml`.
+1. Create a configuration file (e.g., `my_config.yaml`) based on the example in `tests/yaml/routing_queue.yaml`.
 
 2. Run the simulation:
 
 ```
-python src/simulator.py my_config.yaml
+poetry run python -m kendall_simulator.simulator my_config.yaml
 ```
 
 3. View the results in the console output.
@@ -69,37 +75,27 @@ python src/simulator.py my_config.yaml
 The configuration file (YAML format) is used to define your queue network. Here's an example:
 
 ```yaml
-quantityNums: 10000
-seed: 42
-numbers: [0.1, 0.2, 0.3, 0.4, 0.5]  # Optional: for deterministic mode
+numbers:
+  - 0.2176
+  - 0.0103
+  # ... more numbers ...
+
 queuesList:
-  - name: Queue1
-    servers: 2
-    capacity: 4
-    arrivalTimeMin: 1
-    arrivalTimeMax: 3
-    serviceTimeMin: 5
-    serviceTimeMax: 6
-    arrivalStartTime: 0
+  - name: Q1
+    servers: 1
+    capacity: 5
+    arrivalTimeMin: 20.0
+    arrivalTimeMax: 40.0
+    serviceTimeMin: 10.0
+    serviceTimeMax: 12.0
+    arrivalStartTime: 45.0
     network:
-      - [Queue2, 0.7]
-      - [Queue1, 0.2]
+      - [Q2, 0.78]
+      - [Q3, 0.12]
   # Add more queues as needed
 ```
 
-- `quantityNums`: Number of random numbers to generate (if not using predefined numbers)
-- `seed`: Random seed for reproducibility (optional, default is 69)
-- `numbers`: (Optional) List of predefined random numbers for deterministic simulations
-- `queuesList`: List of queues in the network, each with its own parameters
-
-Queue parameters:
-- `name`: Unique name for the queue
-- `servers`: Number of servers in the queue
-- `capacity`: Maximum number of clients (optional, infinite if not specified)
-- `arrivalTimeMin` and `arrivalTimeMax`: Range for arrival times
-- `serviceTimeMin` and `serviceTimeMax`: Range for service times
-- `arrivalStartTime`: Time when external arrivals start (optional)
-- `network`: List of next queues and their probabilities (optional)
+For a full explanation of configuration options, see the comments in the example files.
 
 ## 📊 Output
 
@@ -109,28 +105,24 @@ The simulator provides detailed output for each queue, including:
 - Probability of each state
 - Number of losses (rejected clients)
 
-It also shows the total simulation time, overall losses, and a summary of unprocessed events.
+It also shows the total simulation time and overall losses.
 
 ## 📊 Dispersion Graph
 
-To generate a dispersion graph of the random numbers:
-
-1. In `random_generator.py`, uncomment these lines at the bottom:
-   ```python
-   # x = list(range(len(numbers)))
-   # generate_graph(x, numbers)
-   ```
-
-2. Run the simulation. The graph will be displayed after completion.
-
-This graph helps visualize the distribution and quality of the generated random numbers.
+To generate a dispersion graph of the random numbers, uncomment the relevant lines in `random_generator.py` as described in the file comments.
 
 ## 🧪 Testing
 
-To run the tests:
+To run the tests with coverage:
 
 ```
-python -m unittest discover tests
+poetry run pytest --cov=kendall_simulator
+```
+
+To generate an HTML coverage report:
+
+```
+poetry run pytest --cov=kendall_simulator --cov-report=html
 ```
 
 ## 🤝 Contributing
