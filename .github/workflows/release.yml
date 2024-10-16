@@ -101,5 +101,5 @@ jobs:
       - id: Deployment
         uses: sphinx-notes/pages@v3
         with:
-          python-version: "3.13"
+          python_version: "3.13"
           checkout: false
