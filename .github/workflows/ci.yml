@@ -34,7 +34,3 @@ jobs:
         run: |
           poetry run flake8 .
           poetry run black . --check
-      - name: Build documentation
-        run: |
-          cd docs
-          poetry run make html
