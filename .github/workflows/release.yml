@@ -102,3 +102,4 @@ jobs:
         with:
           python_version: "3.13"
           checkout: false
+          documentation_path: "./docs/source"
