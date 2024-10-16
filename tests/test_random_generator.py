@@ -1,6 +1,6 @@
 # kendall-simulator/tests/test_random_generator.py
 import unittest
-from kendall_simulator.random_generator import (
+from src.kendall_simulator.random_generator import (
     RandomNumberGenerator,
     linear_congruential_method,
 )

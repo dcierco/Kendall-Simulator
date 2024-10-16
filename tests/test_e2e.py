@@ -4,7 +4,7 @@ import io
 import unittest
 import logging
 from contextlib import redirect_stdout
-from kendall_simulator.simulator import main
+from src.kendall_simulator.simulator import main
 
 
 class TestE2E(unittest.TestCase):

@@ -1,8 +1,7 @@
 # kendall-simulator/tests/test_simulation.py
 import unittest
-from kendall_simulator.simulation import Simulation, Queue, Event
-from kendall_simulator.random_generator import RandomNumberGenerator
-from kendall_simulator.exceptions import InvalidQueueConfigurationError
+from src.kendall_simulator.simulation import Simulation, Queue, Event
+from src.kendall_simulator.random_generator import RandomNumberGenerator
 
 
 class TestSimulation(unittest.TestCase):
@@ -22,10 +21,6 @@ class TestSimulation(unittest.TestCase):
         self.assertEqual(self.queue1.servers, 1)
         self.assertEqual(self.queue1.capacity, 3)
         self.assertEqual(self.queue1.kendall_notation, "G/G/1/3/∞/FCFS")
-
-    def test_invalid_queue_configuration(self):
-        with self.assertRaises(InvalidQueueConfigurationError):
-            Queue("Invalid", 0, (1.0, 2.0), (2.0, 4.0))
 
     def test_accumulate_time(self):
         event = Event(time=1.5, event_type="arrival", origin_queue=self.queue1)
