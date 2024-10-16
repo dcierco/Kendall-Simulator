@@ -73,37 +73,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
-
       - name: Build Sphinx docs
-        run: |
-          cd docs
-          poetry run make html
-
-      - name: Copy docs to Jekyll directory
-        run: |
-          mkdir -p ./_site
-          cp -r docs/build/html/* ./_site/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
+        uses: ammaraskar/sphinx-action@master
         with:
-          source: ./_site
-          destination: ./_site
+          docs-folder: "docs/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/_build/html
 
   deploy_docs:
     environment:
@@ -112,6 +90,5 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_docs
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - id: deployment
+        uses: sphinx-notes/pages@v3
