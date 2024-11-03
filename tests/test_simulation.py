@@ -1,7 +1,7 @@
 # kendall-simulator/tests/test_simulation.py
 import unittest
-from src.kendall_simulator.simulation import Simulation, Queue, Event
-from src.kendall_simulator.random_generator import RandomNumberGenerator
+from kendall_simulator.simulation import Simulation, Queue, Event
+from kendall_simulator.random_generator import RandomNumberGenerator
 
 
 class TestSimulation(unittest.TestCase):

@@ -3,7 +3,7 @@ import unittest
 import os
 import time
 import tempfile
-from src.kendall_simulator.random_generator import RandomNumberGenerator
+from kendall_simulator.random_generator import RandomNumberGenerator
 
 
 class TestRandomNumberGenerator(unittest.TestCase):

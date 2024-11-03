@@ -1,6 +1,5 @@
 [run]
 source = kendall_simulator
-omit = tests/*
 
 [report]
 exclude_lines =

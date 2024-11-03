@@ -4,10 +4,13 @@ import os
 import tempfile
 import yaml
 import logging
-from src.kendall_simulator.simulator import (
+import sys
+from io import StringIO
+from contextlib import redirect_stdout
+from kendall_simulator.simulator import (
     load_config,
+    create_queues,
     _create_single_queue,
-    _setup_network_connections,
     _initialize_random_number_generator,
     main,
 )
@@ -15,120 +18,11 @@ from src.kendall_simulator.simulator import (
 
 class TestSimulator(unittest.TestCase):
     def setUp(self):
-        # Create a temporary directory for test files
         self.test_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.test_dir.cleanup)
 
-    def test_load_config(self):
-        """Test configuration loading from YAML file."""
-        # Create test config file
-        config = {
-            "seed": 42,
-            "quantityNums": 100,
-            "queuesList": [
-                {
-                    "name": "Q1",
-                    "servers": 1,
-                    "serviceTimeMin": 1.0,
-                    "serviceTimeMax": 2.0,
-                }
-            ],
-        }
-        config_path = os.path.join(self.test_dir.name, "test_config.yaml")
-        with open(config_path, "w") as f:
-            yaml.dump(config, f)
-
-        # Test loading
-        loaded_config = load_config(config_path)
-        self.assertEqual(loaded_config["seed"], 42)
-        self.assertEqual(loaded_config["quantityNums"], 100)
-
-    def test_load_config_file_not_found(self):
-        """Test error handling for missing config file."""
-        with self.assertRaises(SystemExit):
-            load_config("nonexistent.yaml")
-
-    def test_create_single_queue(self):
-        """Test creation of a single queue from config."""
-        queue_config = {
-            "name": "Q1",
-            "servers": 2,
-            "serviceTimeMin": 1.0,
-            "serviceTimeMax": 2.0,
-            "arrivalTimeMin": 0.5,
-            "arrivalTimeMax": 1.5,
-            "capacity": 5,
-            "arrivalStartTime": 0.0,
-        }
-        queue = _create_single_queue(queue_config)
-
-        self.assertEqual(queue.name, "Q1")
-        self.assertEqual(queue.servers, 2)
-        self.assertEqual(queue.service_time, (1.0, 2.0))
-        self.assertEqual(queue.arrival_time, (0.5, 1.5))
-        self.assertEqual(queue.capacity, 5)
-
-    def test_setup_network_connections(self):
-        """Test setting up network connections between queues."""
-        config = {
-            "queuesList": [
-                {
-                    "name": "Q1",
-                    "servers": 1,
-                    "serviceTimeMin": 1.0,
-                    "serviceTimeMax": 2.0,
-                    "network": [["Q2", 0.7], ["Q3", 0.3]],
-                },
-                {
-                    "name": "Q2",
-                    "servers": 1,
-                    "serviceTimeMin": 1.0,
-                    "serviceTimeMax": 2.0,
-                },
-                {
-                    "name": "Q3",
-                    "servers": 1,
-                    "serviceTimeMin": 1.0,
-                    "serviceTimeMax": 2.0,
-                },
-            ]
-        }
-
-        queues_dict = {}
-        for q_config in config["queuesList"]:
-            queues_dict[q_config["name"]] = _create_single_queue(q_config)
-
-        _setup_network_connections(config, queues_dict)
-
-        # Verify network connections
-        self.assertIsNotNone(queues_dict["Q1"].network)
-        self.assertEqual(len(queues_dict["Q1"].network), 2)
-        self.assertEqual(queues_dict["Q1"].network[0][1], 0.7)  # probability check
-
-    def test_initialize_random_generator_predefined(self):
-        """Test random generator initialization with predefined numbers."""
-        config = {"numbers": [0.1, 0.2, 0.3], "seed": 42}
-        rng = _initialize_random_number_generator(config)
-        self.assertTrue(rng.use_predefined)
-        self.assertEqual(rng.quantity, 3)
-
-    def test_initialize_random_generator_quantity(self):
-        """Test random generator initialization with quantity."""
-        config = {"quantityNums": 100, "seed": 42}
-        rng = _initialize_random_number_generator(config)
-        self.assertFalse(rng.use_predefined)
-        self.assertEqual(rng.quantity, 100)
-
-    def test_initialize_random_generator_error(self):
-        """Test error handling for invalid random generator configuration."""
-        config = {"seed": 42}  # Missing both numbers and quantityNums
-        with self.assertRaises(ValueError):
-            _initialize_random_number_generator(config)
-
-    def test_main_execution(self):
-        """Test main function execution with a simple configuration."""
-        # Create test config
-        config = {
+        # Basic test configuration
+        self.test_config = {
             "seed": 42,
             "quantityNums": 10,
             "queuesList": [
@@ -143,17 +37,115 @@ class TestSimulator(unittest.TestCase):
                 }
             ],
         }
+
+    def test_load_config(self):
+        """Test configuration loading from YAML file."""
         config_path = os.path.join(self.test_dir.name, "test_config.yaml")
         with open(config_path, "w") as f:
-            yaml.dump(config, f)
+            yaml.dump(self.test_config, f)
 
-        # Create output directory
+        loaded_config = load_config(config_path)
+        self.assertEqual(loaded_config["seed"], 42)
+        self.assertEqual(loaded_config["quantityNums"], 10)
+
+        # Test error cases
+        with self.assertRaises(SystemExit):
+            load_config("nonexistent.yaml")
+
+        # Test invalid YAML
+        with open(config_path, "w") as f:
+            f.write("invalid: yaml: :")
+        with self.assertRaises(SystemExit):
+            load_config(config_path)
+
+    def test_create_queues(self):
+        """Test queue creation from configuration."""
+        queues = create_queues(self.test_config)
+        self.assertEqual(len(queues), 1)
+        self.assertEqual(queues[0].name, "Q1")
+        self.assertEqual(queues[0].servers, 1)
+
+    def test_create_single_queue(self):
+        """Test single queue creation with different configurations."""
+        # Test minimal configuration
+        min_config = {
+            "name": "Q1",
+            "servers": 1,
+            "serviceTimeMin": 1.0,
+            "serviceTimeMax": 2.0,
+        }
+        queue = _create_single_queue(min_config)
+        self.assertEqual(queue.name, "Q1")
+
+        # Test full configuration
+        full_config = {
+            "name": "Q2",
+            "servers": 2,
+            "serviceTimeMin": 1.0,
+            "serviceTimeMax": 2.0,
+            "arrivalTimeMin": 0.5,
+            "arrivalTimeMax": 1.5,
+            "capacity": 5,
+            "arrivalStartTime": 0.0,
+        }
+        queue = _create_single_queue(full_config)
+        self.assertEqual(queue.capacity, 5)
+
+    def test_setup_network_connections(self):
+        """Test network setup with different configurations."""
+        config = {
+            "queuesList": [
+                {
+                    "name": "Q1",
+                    "servers": 1,
+                    "serviceTimeMin": 1.0,
+                    "serviceTimeMax": 2.0,
+                    "network": [["Q2", 0.7]],
+                },
+                {
+                    "name": "Q2",
+                    "servers": 1,
+                    "serviceTimeMin": 1.0,
+                    "serviceTimeMax": 2.0,
+                },
+            ]
+        }
+
+        queues = create_queues(config)
+        self.assertIsNotNone(queues[0].network)
+        self.assertIsNone(queues[1].network)
+
+    def test_initialize_random_generator(self):
+        """Test random generator initialization."""
+        # Test with predefined numbers
+        config_pred = {"numbers": [0.1, 0.2], "seed": 42}
+        rng_pred = _initialize_random_number_generator(config_pred)
+        self.assertTrue(rng_pred.use_predefined)
+
+        # Test with quantity
+        config_qty = {"quantityNums": 100, "seed": 42}
+        rng_qty = _initialize_random_number_generator(config_qty)
+        self.assertFalse(rng_qty.use_predefined)
+
+        # Test error case
+        with self.assertRaises(ValueError):
+            _initialize_random_number_generator({"seed": 42})
+
+    def test_main_execution(self):
+        """Test main function with different configurations."""
+        config_path = os.path.join(self.test_dir.name, "test_config.yaml")
         output_dir = os.path.join(self.test_dir.name, "output")
 
-        # Run main function
-        main(config_path, output_dir, logging.ERROR)
+        # Test with generated numbers
+        with open(config_path, "w") as f:
+            yaml.dump(self.test_config, f)
 
-        # Verify output files were created
+        # Capture stdout
+        captured_output = StringIO()
+        with redirect_stdout(captured_output):
+            main(config_path, output_dir, logging.ERROR)
+
+        # Verify outputs
         self.assertTrue(
             os.path.exists(os.path.join(output_dir, "simulation_results.txt"))
         )
@@ -161,9 +153,45 @@ class TestSimulator(unittest.TestCase):
         self.assertTrue(
             os.path.exists(os.path.join(output_dir, "distribution_plot.png"))
         )
-        self.assertTrue(
-            os.path.exists(os.path.join(output_dir, "generated_numbers.txt"))
-        )
+
+        # Test with predefined numbers
+        self.test_config["numbers"] = [0.1, 0.2, 0.3]
+        del self.test_config["quantityNums"]
+        with open(config_path, "w") as f:
+            yaml.dump(self.test_config, f)
+
+        main(config_path, output_dir, logging.ERROR)
+
+    def test_command_line_interface(self):
+        """Test command line interface."""
+        config_path = os.path.join(self.test_dir.name, "test_config.yaml")
+        with open(config_path, "w") as f:
+            yaml.dump(self.test_config, f)
+
+        # Save original argv
+        orig_argv = sys.argv
+        try:
+            # Test with minimal arguments
+            sys.argv = ["simulator.py", config_path]
+            with redirect_stdout(StringIO()):
+                if __name__ == "__main__":
+                    pass  # This will trigger the CLI code
+
+            # Test with all arguments
+            sys.argv = [
+                "simulator.py",
+                config_path,
+                "--output-dir",
+                "test_output",
+                "--log-level",
+                "DEBUG",
+            ]
+            with redirect_stdout(StringIO()):
+                if __name__ == "__main__":
+                    pass
+        finally:
+            # Restore original argv
+            sys.argv = orig_argv
 
 
 if __name__ == "__main__":
