@@ -39,3 +39,6 @@ poetry.lock
 .coverage
 coverage.xml
 htmlcov/
+
+# Output default folder
+output/

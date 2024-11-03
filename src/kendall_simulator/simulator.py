@@ -16,6 +16,7 @@ configuration loading, queue creation, and simulation execution.
 """
 
 import argparse
+import os
 import logging
 import sys
 import yaml
@@ -145,17 +146,23 @@ def _setup_network_connections(
             )
 
 
-def main(input_file: str, log_level: int = logging.INFO) -> None:
+def main(
+    input_file: str, output_dir: str = "output", log_level: int = logging.INFO
+) -> None:
     """
     Run the queue network simulation based on the provided input file.
 
     Args:
         input_file: Path to the simulator configuration file.
+        output_dir: Directory to store output files. Defaults to "output".
         log_level: Logging level to use. Defaults to logging.INFO.
     """
     setup_logging(log_level)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting simulation with input file: {input_file}")
+
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
 
     config = load_config(input_file)
     rng = _initialize_random_number_generator(config)
@@ -165,7 +172,11 @@ def main(input_file: str, log_level: int = logging.INFO) -> None:
     sim = Simulation(rng, queues_list)
     sim.execute()
 
+    # Generate output files and print results to stdout
     _print_simulation_results(sim)
+    _write_simulation_results(sim, output_dir)
+    rng.generate_dispersion_graph(output_dir)
+    rng.write_numbers_to_file(output_dir)
 
 
 def _initialize_random_number_generator(
@@ -185,19 +196,20 @@ def _initialize_random_number_generator(
     """
     logger = logging.getLogger(__name__)
     predefined_nums: Optional[List[float]] = config.get("numbers")
-    quantity_nums: Optional[int] = config.get("quantityNums")
+    quantity: Optional[int] = config.get("quantityNums")
     seed: int = config.get("seed", 69)
 
     logger.info(
-        f"Simulation parameters: predefined_nums={predefined_nums is not None}, quantity_nums={quantity_nums}, seed={seed}"
+        f"Simulation parameters: predefined_nums={predefined_nums is not None}, "
+        f"quantity={quantity}, seed={seed}"
     )
 
     if predefined_nums is not None:
         logger.info("Using predefined random numbers")
-        return RandomNumberGenerator(predefined_nums=predefined_nums)
-    elif quantity_nums is not None:
-        logger.info(f"Generating {quantity_nums} random numbers with seed {seed}")
-        return RandomNumberGenerator(quantity=quantity_nums, seed=seed)
+        return RandomNumberGenerator(seed=seed, predefined_nums=predefined_nums)
+    elif quantity is not None:
+        logger.info(f"Generating {quantity} random numbers with seed {seed}")
+        return RandomNumberGenerator(seed=seed, quantity=quantity)
     else:
         logger.error(
             "Neither 'numbers' nor 'quantityNums' defined in the configuration"
@@ -205,6 +217,37 @@ def _initialize_random_number_generator(
         raise ValueError(
             "Either 'numbers' or 'quantityNums' must be defined in the configuration."
         )
+
+
+def _write_simulation_results(sim: Simulation, output_dir: str) -> None:
+    """
+    Write simulation results to a file.
+
+    Args:
+        sim: The completed Simulation object.
+        output_dir: Directory to store output files.
+    """
+    output_file = os.path.join(output_dir, "simulation_results.txt")
+
+    with open(output_file, "w") as f:
+        total_losses = 0
+
+        for queue in sim.queues_list:
+            f.write(f"Queue: {queue.name} ({queue.kendall_notation}):\n")
+            total_time = sum(queue.time_at_service)
+
+            for index, time in enumerate(queue.time_at_service):
+                if time > 0:
+                    probability = round((time / total_time) * 100, 4)
+                    f.write(
+                        f"State: {index}, Time: {time}, Probability: {probability}%\n"
+                    )
+
+            f.write(f"Losses: {queue.losses}\n\n")
+            total_losses += queue.losses
+
+        f.write(f"Simulation time: {sim.time} seconds\n")
+        f.write(f"Total losses: {total_losses}\n")
 
 
 def _print_simulation_results(sim: Simulation) -> None:
@@ -240,6 +283,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("config_file", help="Path to the configuration file")
     parser.add_argument(
+        "--output-dir",
+        default="output",
+        help="Directory to store output files",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -248,4 +296,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level.upper())
-    main(args.config_file, log_level=log_level)
+    main(args.config_file, args.output_dir, log_level=log_level)

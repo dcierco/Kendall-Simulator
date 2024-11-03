@@ -111,13 +111,13 @@ class Queue:
     def _initialize_attributes(self):
         """Initialize additional attributes of the queue."""
         self.capacity = float("inf") if self.capacity is None else self.capacity
-        self.time_at_service = [0] * (
-            int(self.capacity) + 1 if isinstance(self.capacity, int) else 1
-        )
         self.kendall_notation = self._generate_kendall_notation()
-        logger.debug(
-            f"Queue {self.name} initialized with Kendall notation: {self.kendall_notation}"
-        )
+        if isinstance(self.capacity, int):
+            self.time_at_service = [0] * (self.capacity + 1)
+        else:
+            # For infinite capacity, use a dynamic list that grows as needed
+            self.time_at_service = [0]
+            self._is_infinite_capacity = True
 
     def _generate_kendall_notation(self) -> str:
         """
@@ -137,6 +137,20 @@ class Queue:
         N = "∞"
         D = "FCFS"
         return f"{A}/{B}/{C}/{K}/{N}/{D}"
+
+    def accumulate_state_time(self, state: int, time: float):
+        """
+        Accumulate time for a given state.
+
+        Args:
+            state: The state number (number of clients)
+            time: Time to add to this state
+        """
+        if hasattr(self, "_is_infinite_capacity"):
+            # Extend list if needed for infinite capacity queues
+            while len(self.time_at_service) <= state:
+                self.time_at_service.append(0)
+        self.time_at_service[state] += time
 
 
 class Simulation:
@@ -258,7 +272,7 @@ class Simulation:
     def _log_simulation_summary(self):
         """Log a summary of the simulation results."""
         logger.info("Simulation execution completed")
-        logger.debug(f"Random numbers used: {self.rng.index}")
+        logger.debug(f"Random numbers used: {self.rng.numbers_generated}")
         logger.debug(f"Remaining events: {len(self.events)}")
         logger.debug(f"Last processed event time: {self.time:.4f}")
 
@@ -409,9 +423,16 @@ class Simulation:
             The calculated time for the event.
 
         Raises:
+            OutOfRandomNumbersError: If there are no more
+            random numbers available.
             ValueError: If an invalid event type is provided.
         """
-        r = self.rng.random_uniform(0, 1)
+        try:
+            r = self.rng.get_next_random()
+        except OutOfRandomNumbersError:
+            logger.error("Failed to generate random number for event timing")
+            raise
+
         if event_type == "arrival" and queue.arrival_time is not None:
             return (
                 self.time
@@ -445,7 +466,7 @@ class Simulation:
                 return queue.network[0][0]
 
             try:
-                r = self.rng.random_uniform(0, 1)
+                r = self.rng.get_next_random()
             except OutOfRandomNumbersError:
                 logger.warning(
                     "Could not select next queue due to lack of random numbers"
@@ -489,6 +510,6 @@ class Simulation:
 
         for queue in self.queues_list:
             current_state = queue.clients
-            queue.time_at_service[current_state] += delta
+            queue.accumulate_state_time(current_state, delta)
 
         self.time = new_time

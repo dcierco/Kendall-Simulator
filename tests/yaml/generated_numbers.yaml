@@ -1,0 +1,32 @@
+quantityNums: 100000
+seed: 12
+
+queuesList:
+  - name: Q1
+    servers: 1
+    capacity: 1000
+    arrivalTimeMin: 2.0
+    arrivalTimeMax: 4.0
+    serviceTimeMin: 1.0
+    serviceTimeMax: 2.0
+    arrivalStartTime: 2.0
+    network:
+      - [Q2, 0.8]
+      - [Q3, 0.2]
+
+  - name: Q2 #G/G/2/5
+    servers: 2
+    capacity: 5
+    serviceTimeMin: 4.0
+    serviceTimeMax: 8.0 # 4..8min
+    network:
+      - [Q1, 0.3]
+      - [Q2, 0.5]
+
+  - name: Q3 #G/G/2/10
+    servers: 2
+    capacity: 10
+    serviceTimeMin: 5.0
+    serviceTimeMax: 15.0 # 4..8min
+    network:
+      - [Q3, 0.7]

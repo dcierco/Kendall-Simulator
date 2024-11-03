@@ -8,8 +8,7 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
-- [Output](#output)
-- [Dispersion Graph](#dispersion-graph)
+- [Output Files](#output-files)
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
@@ -28,11 +27,13 @@ This simulator is particularly useful for:
 
 - 🔗 Support for interconnected queue networks
 - 📊 Customizable queue parameters (servers, capacity, arrival/service times)
-- 🔢 Deterministic mode for reproducible simulations
+- 🔢 Two modes of operation:
+  - Predefined numbers for reproducible simulations
+  - On-demand number generation using Linear Congruential Method (LCM)
 - 📈 Detailed state probability calculations
 - 📉 Loss rate analysis
 - 🧮 Kendall notation inference
-- 📊 Dispersion graph generation for random numbers
+- 📊 Visual analysis through sequence and distribution plots
 - 🔄 Flexible random number generation and usage
 
 ## 🛠️ Installation
@@ -60,26 +61,38 @@ This simulator is particularly useful for:
 
 ## 🚀 Usage
 
-1. Create a configuration file (e.g., `my_config.yaml`) based on the example in `tests/yaml/routing_queue.yaml`.
+1. Create a configuration file (e.g., `config.yaml`) following the format in `tests/yaml/routing_queue.yaml`.
 
 2. Run the simulation:
+   ```
+   poetry run python -m kendall_simulator.simulator config.yaml [--output-dir OUTPUT_DIR] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+   ```
 
-```
-poetry run python -m kendall_simulator.simulator my_config.yaml
-```
-
-3. View the results in the console output.
+   Arguments:
+   - `config.yaml`: Path to your configuration file
+   - `--output-dir`: Directory for output files (default: "output")
+   - `--log-level`: Logging level (default: INFO)
 
 ## ⚙️ Configuration
 
-The configuration file (YAML format) is used to define your queue network. Here's an example:
+The configuration file (YAML format) supports two modes of operation:
 
+1. Using predefined numbers:
 ```yaml
 numbers:
   - 0.2176
   - 0.0103
   # ... more numbers ...
+```
 
+2. Using generated numbers:
+```yaml
+quantityNums: 100000  # Number of random numbers to generate
+seed: 42              # Seed for reproducibility
+```
+
+Queue configuration:
+```yaml
 queuesList:
   - name: Q1
     servers: 1
@@ -95,21 +108,25 @@ queuesList:
   # Add more queues as needed
 ```
 
-For a full explanation of configuration options, see the comments in the example files.
+## 📂 Output Files
 
-## 📊 Output
+The simulator generates several output files in the specified output directory:
 
-The simulator provides detailed output for each queue, including:
-- Kendall notation
-- Time spent in each state
-- Probability of each state
-- Number of losses (rejected clients)
+1. `simulation_results.txt`: Detailed simulation results including:
+   - Queue states and their probabilities
+   - Time spent in each state
+   - Loss statistics
+   - Total simulation time
 
-It also shows the total simulation time and overall losses.
+2. `sequence_plot.png`: Visual representation of the random number sequence showing:
+   - Random number values over time
+   - Pattern and distribution visualization
 
-## 📊 Dispersion Graph
+3. `distribution_plot.png`: Histogram showing:
+   - Distribution of generated random numbers
+   - Frequency analysis of values
 
-To generate a dispersion graph of the random numbers, uncomment the relevant lines in `random_generator.py` as described in the file comments.
+4. `generated_numbers.txt`: Raw list of all random numbers used in the simulation
 
 ## 🧪 Testing
 

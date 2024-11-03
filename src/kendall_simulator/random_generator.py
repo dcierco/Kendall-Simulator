@@ -1,18 +1,31 @@
-# kendall-simulator/src/random_generator.py
+# kendall-simulator/src/kendall_simulator/random_generator.py
 """
 Random Number Generator module for the Kendall Queue Network Simulator.
 
-This module provides functionality for generating and managing random numbers
-used in the simulation. It supports both predefined lists of random numbers
-and generation of random numbers using the linear congruential method.
+This module provides functionality for generating random numbers using the Linear
+Congruential Method (LCM) in a parallel manner. It supports both on-demand generation
+and predefined number sequences for reproducible simulations.
 
 Key components:
-    - RandomNumberGenerator: Main class for generating and managing random numbers.
-    - linear_congruential_method: Function to generate random numbers using LCM.
-    - Utility functions for normalizing, printing, and writing random numbers.
+    - RandomNumberGenerator: Main class for generating random numbers using parallel processing.
+    - Supporting functions for visualization and analysis of generated numbers.
+
+The Linear Congruential Method uses the formula:
+    X_{n+1} = (a * X_n + c) mod M
+
+where:
+    a: multiplier (default: 214013)
+    c: increment (default: 2531011)
+    M: modulus (default: 2^32)
+    X_0: seed
 """
 
+import os
+import time
+import threading
+from queue import Queue as ThreadQueue
 from typing import List, Optional
+import numpy as np
 import matplotlib.pyplot as plt
 import logging
 from kendall_simulator.exceptions import OutOfRandomNumbersError
@@ -20,202 +33,237 @@ from kendall_simulator.exceptions import OutOfRandomNumbersError
 logger = logging.getLogger(__name__)
 
 
-def linear_congruential_method(
-    a: int, m: int, c: int, x0: int, random_nums: List[int], num_of_random_nums: int
-) -> None:
+def generate_graph(x: List[int], y: List[float], output_dir: str) -> None:
     """
-    Generate random numbers using the linear congruential method.
-
-    Args:
-        a: Multiplier.
-        m: Modulus.
-        c: Increment.
-        x0: Seed.
-        random_nums: List to store generated numbers.
-        num_of_random_nums: Number of random numbers to generate.
-    """
-    random_nums[0] = x0
-
-    for i in range(1, num_of_random_nums):
-        random_nums[i] = ((random_nums[i - 1] * a) + c) % m
-
-
-def print_nums(random_nums: List[float]) -> None:
-    """
-    Print the generated random numbers.
-
-    Args:
-        random_nums: List of random numbers.
-    """
-    for num in random_nums:
-        print(num, end=" ")
-
-
-def normalize_nums(max_num: int, random_nums: List[int]) -> List[float]:
-    """
-    Normalize the generated random numbers.
-
-    Args:
-        max_num: Maximum value in the random_nums list.
-        random_nums: List of random numbers.
-
-    Returns:
-        Normalized list of random numbers.
-    """
-    return [round(num / max_num, 4) for num in random_nums]
-
-
-def generate_graph(x: List[int], y: List[float]) -> None:
-    """
-    Generate a graph of the random numbers.
+    Generate and save distribution plots of random numbers.
 
     Args:
         x: List of indices.
         y: List of random numbers.
+        output_dir: Path to output directory.
     """
-    plt.scatter(x, y)
-    plt.title("Pseudo-random generated numbers")
-    plt.xlabel("Generated number index")
-    plt.ylabel("Generated number")
-    plt.show()
+    # Convert to numpy arrays for better performance
+    y_array = np.array(y)
+    x_array = np.array(x)
+
+    # Generate sequence plot
+    fig = plt.figure(figsize=(15, 10))
+    ax = fig.add_subplot(111)
+    ax.scatter(x_array, y_array, s=1, alpha=0.1, c="black")
+    ax.set_title(f"Random Number Sequence (n={len(y):,} points)")
+    ax.set_xlabel("Generation Sequence")
+    ax.set_ylabel("Generated Value")
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(0, 1)  # Set y-axis limits
+    ax.set_xlim(0, len(x_array))  # Set x-axis limits
+    plt.tight_layout(pad=0.5)
+    plt.savefig(
+        os.path.join(output_dir, "sequence_plot.png"),
+        dpi=300,
+        bbox_inches="tight",
+        pad_inches=0.1,
+    )
+    plt.close()
+
+    # Generate histogram
+    fig = plt.figure(figsize=(15, 10))
+    ax = fig.add_subplot(111)
+    counts, bins = np.histogram(y_array, bins=100)
+    ax.hist(bins[:-1], bins, weights=counts, alpha=0.7)
+    ax.set_title("Random Number Distribution")
+    ax.set_xlabel("Value")
+    ax.set_ylabel("Frequency")
+    ax.grid(True, alpha=0.3)
+    ax.set_xlim(0, 1)  # Set x-axis limits for histogram
+    plt.tight_layout(pad=0.5)
+    plt.savefig(
+        os.path.join(output_dir, "distribution_plot.png"),
+        dpi=300,
+        bbox_inches="tight",
+        pad_inches=0.1,
+    )
+    plt.close()
 
 
-def write_nums_to_file(file_name: str, content: List[float]) -> None:
+def write_nums_to_file(file_path: str, numbers: List[float]) -> None:
     """
-    Write the random numbers to a file.
+    Write a list of numbers to a file.
 
     Args:
-        file_name: Name of the file to write to.
-        content: List of random numbers to write.
+        file_path: Path of the file to write to.
+        numbers: List of numbers to write.
     """
-    with open(file_name, "w") as f:
-        for num in content:
+    with open(file_path, "w") as f:
+        for num in numbers:
             f.write(f"{num}\n")
 
 
 class RandomNumberGenerator:
     """
-    A class to generate and manage random numbers for the simulation.
+    A class to generate random numbers using the Linear Congruential Method in parallel.
 
-    This class can work with either predefined lists of random numbers or
-    generate new random numbers using the linear congruential method.
+    This class implements a producer-consumer pattern where random numbers are generated
+    in a separate thread and stored in a thread-safe queue. This allows for efficient
+    number generation without blocking the main simulation thread.
 
     Attributes:
-        seed: Seed for the random number generation.
-        a: Multiplier for the linear congruential method.
-        m: Modulus for the linear congruential method.
-        c: Increment for the linear congruential method.
-        index: Current index in the list of random numbers.
-        nums: List of random numbers.
-        quantity: Total number of random numbers.
+        a (int): Multiplier for the LCM (default: 214013).
+        c (int): Increment for the LCM (default: 2531011).
+        M (int): Modulus for the LCM (default: 2^32).
+        previous (int): Current/previous generated number in the sequence.
+        generated_nums (List[float]): List of all generated numbers for analysis.
+        use_predefined (bool): Whether to use predefined numbers.
+        quantity (int): Total number of random numbers to generate/use.
+        number_queue (ThreadQueue): Thread-safe queue for number generation.
+        numbers_generated (int): Count of numbers generated/consumed so far.
+        _lock (threading.Lock): Lock for thread-safe operations.
     """
 
     def __init__(
         self,
-        quantity: Optional[int] = None,
         seed: int = 69,
         predefined_nums: Optional[List[float]] = None,
+        quantity: Optional[int] = None,
+        buffer_size: int = 1000,
     ):
         """
-        Initialize the RandomNumberGenerator.
+        Initialize the RandomNumberGenerator with parallel generation capabilities.
 
         Args:
-            quantity: Number of random numbers to generate. Required if predefined_nums is None.
-            seed: Seed for the random number generation. Defaults to 69.
-            predefined_nums: List of predefined random numbers.
+            seed: Starting value for the random sequence. Defaults to 69.
+            predefined_nums: Optional list of predefined random numbers.
+            quantity: Maximum number of random numbers to generate.
+                     Required if predefined_nums is None.
+            buffer_size: Size of the number generation buffer. Defaults to 1000.
+                       Only used when generating numbers (not with predefined_nums).
 
         Raises:
             ValueError: If neither quantity nor predefined_nums is provided.
         """
         logger.info(f"Initializing RandomNumberGenerator with seed {seed}")
 
-        self.seed: int = seed
+        # LCM parameters
         self.a: int = 214013
-        self.m: int = 4294967296
         self.c: int = 2531011
-        self.index: int = 0
+        self.M: int = 4294967296  # 2^32
+        self.previous: int = seed
+
+        # Store generated numbers for analysis
+        self.generated_nums: List[float] = []
+        self._lock = threading.Lock()
 
         if predefined_nums is not None:
-            self.nums: List[float] = predefined_nums
-            self.quantity: int = len(predefined_nums)
+            logger.debug("Using predefined random number sequence")
+            self.use_predefined = True
+            self.predefined_nums = predefined_nums
+            self.quantity = len(predefined_nums)
+            self.number_queue = ThreadQueue()
+            for num in predefined_nums:
+                self.number_queue.put(num)
         elif quantity is not None:
+            logger.debug(f"Using parallel LCM for generating {quantity} random numbers")
+            self.use_predefined = False
             self.quantity = quantity
-            self.nums = self._generate_numbers()
+            self.number_queue = ThreadQueue(maxsize=buffer_size)
+            self.generator_thread = threading.Thread(
+                target=self._generate_numbers_thread, daemon=True
+            )
+            self.generator_thread.start()
         else:
-            raise ValueError("Either quantity or predefined_nums must be provided.")
+            raise ValueError("Either quantity or predefined_nums must be provided")
 
-    def _generate_numbers(self) -> List[float]:
+        self.numbers_generated = 0
+
+    def _generate_numbers_thread(self) -> None:
         """
-        Generate the random numbers using the linear congruential method.
+        Generate random numbers in a separate thread.
+
+        This method implements the producer part of the producer-consumer pattern.
+        It continuously generates random numbers using LCM and puts them in the
+        thread-safe queue until reaching the specified quantity.
+        """
+        local_previous = self.previous
+        generated_count = 0
+
+        while generated_count < self.quantity:
+            # Generate next number using LCM
+            local_previous = ((self.a * local_previous) + self.c) % self.M
+            number = local_previous / self.M
+
+            try:
+                self.number_queue.put(number, timeout=1)
+                generated_count += 1
+                logger.debug(f"Generated number {generated_count}/{self.quantity}")
+            except ThreadQueue.full:
+                logger.debug("Number queue full, waiting...")
+                time.sleep(0.1)
+
+    def get_next_random(self) -> float:
+        """
+        Get the next random number from the sequence.
+
+        This method implements the consumer part of the producer-consumer pattern.
+        It retrieves the next available number from the thread-safe queue and
+        maintains the list of generated numbers for analysis.
 
         Returns:
-            List of generated random numbers.
-        """
-        logger.debug(f"Generating {self.quantity} random numbers")
-
-        random_nums = [0] * self.quantity
-        linear_congruential_method(
-            self.a, self.m, self.c, self.seed, random_nums, self.quantity
-        )
-        max_num = max(random_nums[1:])
-        return normalize_nums(max_num, random_nums[1:])
-
-    def get_nums(self) -> List[float]:
-        """
-        Get the generated random numbers.
-
-        Returns:
-            List of generated random numbers.
-        """
-        return self.nums
-
-    def write_to_file(self, file_name: str = "generated_numbers.txt") -> None:
-        """
-        Write the generated numbers to a file.
-
-        Args:
-            file_name: Name of the file to write to. Defaults to "generated_numbers.txt".
-        """
-        write_nums_to_file(file_name, self.nums)
-
-    def random_uniform(self, a: float, b: float) -> float:
-        """
-        Generates a random number uniformly distributed between a and b.
-
-        Args:
-            a: The lower bound of the range.
-            b: The upper bound of the range.
-
-        Returns:
-            A random number between a and b.
+            A random float between 0 and 1.
 
         Raises:
-            OutOfRandomNumbersError: If the generator runs out of random numbers.
+            OutOfRandomNumbersError: If maximum number of random numbers has been reached
+                                   or if failed to get next number from queue.
         """
-        if not self.hasNext():
-            logger.warning("Ran out of random numbers")
-            raise OutOfRandomNumbersError("Ran out of random numbers")
-        r = self.nums[self.index]
-        self.index += 1
-        return a + (b - a) * r
+        if self.numbers_generated >= self.quantity:
+            logger.error("Maximum number of random numbers reached")
+            raise OutOfRandomNumbersError("Maximum number of random numbers reached")
+
+        try:
+            number = self.number_queue.get(timeout=1)
+            with self._lock:
+                self.generated_nums.append(number)
+                self.numbers_generated += 1
+            logger.debug(
+                f"Retrieved random number {self.numbers_generated}/{self.quantity}: {number}"
+            )
+            return number
+        except ThreadQueue.empty:
+            logger.error("Failed to get next random number from queue")
+            raise OutOfRandomNumbersError("Failed to generate next random number")
 
     def hasNext(self) -> bool:
         """
-        Check if there are more random numbers available.
+        Check if more random numbers are available.
 
         Returns:
-            True if there are more random numbers, False otherwise.
+            True if more numbers can be generated/retrieved, False otherwise.
         """
-        return self.index < len(self.nums)
+        return self.numbers_generated < self.quantity
 
+    def generate_dispersion_graph(self, output_dir: str) -> None:
+        """
+        Generate and save dispersion graphs of the generated random numbers.
 
-if __name__ == "__main__":
-    # Example usage
-    generator = RandomNumberGenerator(quantity=1000, seed=346)
-    numbers = generator.get_nums()
-    print_nums(numbers[:10])  # Print first 10 numbers
-    generator.write_to_file()
+        Args:
+            output_dir: Directory where to save the graphs.
+        """
+        logger.info("Generating dispersion graphs")
+        os.makedirs(output_dir, exist_ok=True)
 
-    # Uncomment to generate graph
-    # x = list(range(len(numbers)))
-    # generate_graph(x, numbers)
+        generate_graph(
+            list(range(len(self.generated_nums))), self.generated_nums, output_dir
+        )
+        logger.debug("Dispersion graphs saved")
+
+    def write_numbers_to_file(self, output_dir: str) -> None:
+        """
+        Write all generated numbers to a file.
+
+        Args:
+            output_dir: Directory where to save the numbers.
+        """
+        logger.info("Writing generated numbers to file")
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, "generated_numbers.txt")
+
+        write_nums_to_file(output_path, self.generated_nums)
+        logger.debug(f"Generated numbers saved to {output_path}")

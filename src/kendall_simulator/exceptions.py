@@ -11,10 +11,6 @@ class SimulationError(Exception):
     """Base class for exceptions in this simulation."""
 
 
-class RandomNumberExhaustedError(SimulationError):
-    """Raised when the random number generator runs out of numbers."""
-
-
 class InvalidQueueConfigurationError(SimulationError):
     """Raised when a queue is configured incorrectly."""
 

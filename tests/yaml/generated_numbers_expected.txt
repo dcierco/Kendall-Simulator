@@ -1,0 +1,30 @@
+Queue: Q1 (G/G/1/1000/∞/FCFS):
+State: 0, Time: 32610.06957609835, Probability: 50.0378%
+State: 1, Time: 32560.85003082943, Probability: 49.9622%
+Number of remaining clients: 1
+Losses: 0
+Queue: Q2 (G/G/2/5/∞/FCFS):
+State: 0, Time: 3.0858830749057233, Probability: 0.0047%
+State: 1, Time: 6.95445008482784, Probability: 0.0107%
+State: 2, Time: 3.086469173198566, Probability: 0.0047%
+State: 3, Time: 4.428340920712799, Probability: 0.0068%
+State: 4, Time: 5.633573309052736, Probability: 0.0086%
+State: 5, Time: 65147.730890365085, Probability: 99.9644%
+Number of remaining clients: 5
+Losses: 17388
+Queue: Q3 (G/G/2/10/∞/FCFS):
+State: 0, Time: 5.887753741582856, Probability: 0.009%
+State: 1, Time: 10.941698384005576, Probability: 0.0168%
+State: 2, Time: 21.139033821877092, Probability: 0.0324%
+State: 3, Time: 21.257645705947652, Probability: 0.0326%
+State: 4, Time: 26.85745312087238, Probability: 0.0412%
+State: 5, Time: 5.10685998853296, Probability: 0.0078%
+State: 6, Time: 15.693949264474213, Probability: 0.0241%
+State: 7, Time: 6.51219539064914, Probability: 0.01%
+State: 8, Time: 6.600992060266435, Probability: 0.0101%
+State: 9, Time: 4.914886086247861, Probability: 0.0075%
+State: 10, Time: 65046.007139363326, Probability: 99.8083%
+Number of remaining clients: 10
+Losses: 4335
+Simulation time: 65170.91960692778 seconds
+Total losses: 21723
